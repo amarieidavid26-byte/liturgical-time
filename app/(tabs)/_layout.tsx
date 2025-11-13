@@ -7,9 +7,11 @@ import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useTranslation } from '@/lib/hooks/useTranslation';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const t = useTranslation();
 
   return (
     <Tabs
@@ -28,28 +30,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Calendar',
+          title: t.calendar,
           tabBarIcon: ({ color }) => <Ionicons size={28} name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen
         name="meetings"
         options={{
-          title: 'Meetings',
+          title: t.meetings,
           tabBarIcon: ({ color }) => <Ionicons size={28} name="briefcase" color={color} />,
         }}
       />
       <Tabs.Screen
         name="orthodox"
         options={{
-          title: 'Orthodox',
+          title: t.orthodox,
           tabBarIcon: ({ color }) => <Ionicons size={28} name="book" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t.settings,
           tabBarIcon: ({ color }) => <Ionicons size={28} name="settings" color={color} />,
         }}
       />

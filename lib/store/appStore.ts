@@ -9,6 +9,7 @@ interface AppStore {
   julianCalendarEnabled: boolean;
   isOnboarded: boolean;
   isLoading: boolean;
+  language: 'en' | 'ro';
   
   setParishSettings: (settings: ParishSettings | null) => void;
   setMeetings: (meetings: Meeting[]) => void;
@@ -20,6 +21,7 @@ interface AppStore {
   toggleJulianCalendar: () => void;
   setOnboarded: (onboarded: boolean) => void;
   setIsLoading: (loading: boolean) => void;
+  setLanguage: (lang: 'en' | 'ro') => void;
   reset: () => void;
 }
 
@@ -31,6 +33,7 @@ const useAppStore = create<AppStore>((set) => ({
   julianCalendarEnabled: false,
   isOnboarded: false,
   isLoading: true,
+  language: 'ro',
   
   setParishSettings: (settings) => set({ parishSettings: settings }),
   
@@ -60,6 +63,8 @@ const useAppStore = create<AppStore>((set) => ({
   
   setIsLoading: (loading) => set({ isLoading: loading }),
   
+  setLanguage: (lang) => set({ language: lang }),
+  
   reset: () => set({
     parishSettings: null,
     meetings: [],
@@ -68,6 +73,7 @@ const useAppStore = create<AppStore>((set) => ({
     julianCalendarEnabled: false,
     isOnboarded: false,
     isLoading: false,
+    language: 'ro',
   }),
 }));
 

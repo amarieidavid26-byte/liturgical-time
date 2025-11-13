@@ -15,11 +15,13 @@ import useAppStore from '../../lib/store/appStore';
 import { deleteMeeting, getAllMeetings } from '../../lib/database/sqlite';
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
+import { useTranslation } from '../../lib/hooks/useTranslation';
 
 export default function MeetingsScreen() {
   const { meetings, setMeetings, parishSettings } = useAppStore();
   const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
   const [pastMeetings, setPastMeetings] = useState<Meeting[]>([]);
+  const t = useTranslation();
 
   useEffect(() => {
     const now = new Date();
@@ -31,12 +33,12 @@ export default function MeetingsScreen() {
 
   const handleDeleteMeeting = (meeting: Meeting) => {
     Alert.alert(
-      'Delete Meeting',
-      `Are you sure you want to delete "${meeting.title}"?`,
+      t.deleteMeeting,
+      `${t.confirmDelete} "${meeting.title}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Delete',
+          text: t.delete,
           style: 'destructive',
           onPress: async () => {
             try {
@@ -108,8 +110,8 @@ export default function MeetingsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="calendar-outline" size={64} color={Colors.orthodox.lightGray} />
-      <Text style={styles.emptyTitle}>No meetings scheduled</Text>
-      <Text style={styles.emptySubtitle}>Tap + to add your first meeting</Text>
+      <Text style={styles.emptyTitle}>{t.noMeetings}</Text>
+      <Text style={styles.emptySubtitle}>{t.addFirstMeeting}</Text>
     </View>
   );
 
@@ -121,14 +123,14 @@ export default function MeetingsScreen() {
         keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
         ListHeaderComponent={
           upcomingMeetings.length > 0 ? (
-            <Text style={styles.sectionTitle}>Upcoming</Text>
+            <Text style={styles.sectionTitle}>{t.upcoming}</Text>
           ) : null
         }
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={
           pastMeetings.length > 0 ? (
             <>
-              <Text style={styles.sectionTitle}>Past</Text>
+              <Text style={styles.sectionTitle}>{t.past}</Text>
               {pastMeetings.map((meeting) => (
                 <View key={meeting.id} style={{ opacity: 0.6 }}>
                   {renderMeeting({ item: meeting })}

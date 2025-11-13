@@ -16,9 +16,11 @@ import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
 import { saveParishSettings, clearAllData } from '../../lib/utils/storage';
 import { deleteAllMeetings, saveParishSettingsDb, deleteParishSettingsDb } from '../../lib/database/sqlite';
+import { useTranslation } from '../../lib/hooks/useTranslation';
 
 export default function SettingsScreen() {
-  const { parishSettings, setParishSettings, julianCalendarEnabled, toggleJulianCalendar, reset } = useAppStore();
+  const { parishSettings, setParishSettings, julianCalendarEnabled, toggleJulianCalendar, language, setLanguage, reset } = useAppStore();
+  const t = useTranslation();
   
   const [parishName, setParishName] = useState(parishSettings?.parishName || '');
   const [sundayTime, setSundayTime] = useState(
@@ -151,7 +153,7 @@ export default function SettingsScreen() {
         
         <View style={styles.settingRow}>
           <View>
-            <Text style={styles.label}>Julian Calendar</Text>
+            <Text style={styles.label}>{t.useJulianCalendar}</Text>
             <Text style={styles.sublabel}>Display Julian dates alongside Gregorian</Text>
           </View>
           <Switch
@@ -159,6 +161,30 @@ export default function SettingsScreen() {
             onValueChange={toggleJulianCalendar}
             trackColor={{ false: Colors.orthodox.lightGray, true: Colors.orthodox.royalBlue }}
           />
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.language}</Text>
+        
+        <View style={styles.languageButtons}>
+          <TouchableOpacity
+            style={[styles.languageButton, language === 'ro' && styles.languageButtonActive]}
+            onPress={() => setLanguage('ro')}
+          >
+            <Text style={[styles.languageButtonText, language === 'ro' && styles.languageButtonTextActive]}>
+              🇷🇴 {t.romanian}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.languageButton, language === 'en' && styles.languageButtonActive]}
+            onPress={() => setLanguage('en')}
+          >
+            <Text style={[styles.languageButtonText, language === 'en' && styles.languageButtonTextActive]}>
+              🇬🇧 {t.english}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -287,5 +313,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.orthodox.darkGray,
     opacity: 0.6,
+  },
+  languageButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  languageButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.orthodox.lightGray,
+    alignItems: 'center',
+  },
+  languageButtonActive: {
+    borderColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.orthodox.lightBlue,
+  },
+  languageButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.orthodox.darkGray,
+  },
+  languageButtonTextActive: {
+    color: Colors.orthodox.royalBlue,
   },
 });

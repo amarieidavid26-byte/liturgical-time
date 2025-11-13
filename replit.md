@@ -34,8 +34,15 @@ Preferred communication style: Simple, everyday language.
 
 **State Management:** Zustand for global state
 - Centralized store in `lib/store/appStore.ts`
-- Manages parish settings, meetings, calendar view modes, and onboarding status
+- Manages parish settings, meetings, calendar view modes, language preference, and onboarding status
 - Persists state across app sessions
+
+**Internationalization (i18n):**
+- Full English and Romanian translation support
+- Translation system in `lib/translations/index.ts`
+- Custom hook `useTranslation()` for accessing translations
+- Language toggle in Settings screen
+- Default language: Romanian
 
 **Animation:** React Native Reanimated for smooth UI transitions and gestures
 
@@ -151,7 +158,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### November 13, 2025 - Orthodox Calendar API Integration
+### November 13, 2025 - Major Features Update
+
+**Orthodox Calendar API Integration:**
 - **Added:** Live Orthodox calendar data integration via orthocal.info API
 - **Created:** `lib/api/orthodoxAPI.ts` with caching and offline fallback support
 - **Updated:** Orthodox Events tab now displays fresh daily data including:
@@ -163,3 +172,16 @@ Preferred communication style: Simple, everyday language.
 - **Feature:** Refresh button to manually clear cache and reload data
 - **Feature:** 24-hour automatic cache expiration for optimal performance
 - **Feature:** Graceful fallback to local data when offline or API unavailable
+
+**Translation System:**
+- **Created:** Complete English/Romanian translation system
+- **Files:** `lib/translations/index.ts` with all UI strings in both languages
+- **Hook:** `lib/hooks/useTranslation.ts` for component-level translation access
+- **Store:** Added language state management to Zustand store
+- **UI:** Language selector in Settings screen with flag icons
+- **Coverage:** Tab labels, meetings screen, settings screen fully translated
+- **Default:** Romanian language for Romanian Orthodox users
+
+**Calendar Improvements:**
+- **Updated:** Calendar now starts with Monday (European/Orthodox format)
+- **Feature:** Sunday appears at the end of the week (right side)
