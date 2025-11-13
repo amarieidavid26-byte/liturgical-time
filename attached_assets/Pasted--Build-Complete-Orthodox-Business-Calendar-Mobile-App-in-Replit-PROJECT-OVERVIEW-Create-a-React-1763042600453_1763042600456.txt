@@ -1,0 +1,607 @@
+# Build Complete Orthodox Business Calendar Mobile App in Replit
+
+## PROJECT OVERVIEW
+Create a React Native + Expo mobile app that helps Romanian Orthodox entrepreneurs avoid scheduling business meetings during church services. The app combines an Orthodox liturgical calendar with business meeting management and intelligent conflict detection.
+
+## COMPLETE TECHNICAL STACK
+```json
+{
+  "framework": "React Native + Expo SDK 51",
+  "language": "TypeScript (strict mode)",
+  "database": "expo-sqlite for local storage",
+  "state": "Zustand for global state management",
+  "calendar": "react-native-calendars",
+  "storage": "@react-native-async-storage/async-storage",
+  "dates": "date-fns for date manipulation",
+  "ui": "Native components with Orthodox color scheme"
+}
+```
+
+## DEPENDENCIES TO INSTALL
+```bash
+npm install react-native-calendars expo-sqlite @react-native-async-storage/async-storage date-fns zustand @expo/vector-icons @react-native-community/datetimepicker@7.6.4
+```
+
+## COMPLETE FILE STRUCTURE NEEDED
+```
+/app
+  /(tabs)
+    _layout.tsx       # Tab navigation with 4 tabs
+    index.tsx         # Main calendar screen
+    meetings.tsx      # List of all meetings
+    orthodox.tsx      # Orthodox calendar events
+    settings.tsx      # Settings screen
+  /meeting
+    [id].tsx          # Edit existing meeting
+    new.tsx           # Add new meeting
+  _layout.tsx         # Root layout with initialization
+  onboarding.tsx      # Parish setup flow
+  modal.tsx           # About screen
+/lib
+  /database
+    sqlite.ts         # Database operations
+  /calendar
+    orthodoxCalendar.ts    # Orthodox date calculations
+    conflictDetection.ts   # Meeting conflict logic
+  /utils
+    storage.ts        # AsyncStorage operations
+  /store
+    appStore.ts       # Zustand global state
+  types.ts           # TypeScript interfaces
+/constants
+  Colors.ts          # Orthodox color scheme
+  /data
+    orthodoxCalendar.json  # Romanian Orthodox data
+/components
+  (keep existing Expo components)
+```
+
+## COLOR SCHEME (constants/Colors.ts)
+```typescript
+const Colors = {
+  orthodox: {
+    gold: '#FFD700',        // Major feasts
+    royalBlue: '#4169E1',   // Regular Orthodox events
+    burgundy: '#800020',    // Fasting periods
+    white: '#FFFFFF',       // Background
+    lightGray: '#F5F5F5',   // Secondary background
+    darkGray: '#333333',    // Text
+    red: '#DC143C',         // High severity conflicts
+    orange: '#FF8C00',      // Medium severity conflicts
+    yellow: '#FFD700',      // Low severity conflicts
+    green: '#4CAF50',       // Business meetings
+    lightBlue: '#E3F2FD',   // Sunday highlight
+    purple: '#9C27B0',      // Special liturgy
+  },
+  calendar: {
+    sundayBackground: '#E3F2FD',
+    fastingBackground: '#FFF3E0',
+    feastBackground: '#FFF8DC',
+    conflictBackground: '#FFEBEE',
+    meetingDot: '#4CAF50',
+    orthodoxDot: '#4169E1',
+    greatFeastDot: '#FFD700',
+    conflictDot: '#DC143C',
+  }
+};
+```
+
+## ROMANIAN ORTHODOX CALENDAR DATA (constants/data/orthodoxCalendar.json)
+```json
+{
+  "greatFeasts": [
+    {
+      "name": "Nașterea Domnului (Crăciunul)",
+      "nameEn": "Nativity of Christ",
+      "date": "12-25",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Botezul Domnului (Boboteaza)",
+      "nameEn": "Theophany",
+      "date": "01-06",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Întâmpinarea Domnului",
+      "nameEn": "Presentation of Christ",
+      "date": "02-02",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Buna Vestire",
+      "nameEn": "Annunciation",
+      "date": "03-25",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Schimbarea la Față",
+      "nameEn": "Transfiguration",
+      "date": "08-06",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Adormirea Maicii Domnului",
+      "nameEn": "Dormition of the Theotokos",
+      "date": "08-15",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Nașterea Maicii Domnului",
+      "nameEn": "Nativity of the Theotokos",
+      "date": "09-08",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Înălțarea Sfintei Cruci",
+      "nameEn": "Elevation of the Cross",
+      "date": "09-14",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great",
+      "fasting": "strict"
+    },
+    {
+      "name": "Intrarea în Biserică a Maicii Domnului",
+      "nameEn": "Entrance of the Theotokos",
+      "date": "11-21",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    }
+  ],
+  "moveableFeasts2024": {
+    "pascha": "2024-05-05",
+    "palmSunday": "2024-04-28",
+    "ascension": "2024-06-13",
+    "pentecost": "2024-06-23",
+    "allSaints": "2024-06-30"
+  },
+  "moveableFeasts2025": {
+    "pascha": "2025-04-20",
+    "palmSunday": "2025-04-13",
+    "ascension": "2025-05-29",
+    "pentecost": "2025-06-08",
+    "allSaints": "2025-06-15"
+  },
+  "majorFeasts": [
+    {
+      "name": "Tăierea Împrejur și Sf. Vasile cel Mare",
+      "nameEn": "Circumcision & St. Basil",
+      "date": "01-01",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Ioan Botezătorul",
+      "nameEn": "St. John the Baptist",
+      "date": "01-07",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sfinții Trei Ierarhi",
+      "nameEn": "Three Holy Hierarchs",
+      "date": "01-30",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Mare Mucenic Gheorghe",
+      "nameEn": "St. George",
+      "date": "04-23",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Apostoli Petru și Pavel",
+      "nameEn": "Sts. Peter and Paul",
+      "date": "06-29",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Nicolae",
+      "nameEn": "St. Nicholas",
+      "date": "12-06",
+      "liturgyRequired": true,
+      "level": "major"
+    }
+  ],
+  "fastingPeriods": {
+    "greatLent2024": {
+      "start": "2024-03-18",
+      "end": "2024-05-04",
+      "type": "lent"
+    },
+    "greatLent2025": {
+      "start": "2025-03-03",
+      "end": "2025-04-19",
+      "type": "lent"
+    },
+    "dormitionFast": {
+      "start": "08-01",
+      "end": "08-14",
+      "type": "regular"
+    },
+    "nativityFast": {
+      "start": "11-15",
+      "end": "12-24",
+      "type": "regular"
+    }
+  },
+  "weeklyFasting": {
+    "wednesday": "regular",
+    "friday": "regular"
+  }
+}
+```
+
+## TYPESCRIPT INTERFACES (lib/types.ts)
+```typescript
+export interface Meeting {
+  id?: number;
+  title: string;
+  date: string; // ISO 8601 format YYYY-MM-DD
+  startTime: string; // HH:mm format
+  endTime: string; // HH:mm format
+  location?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ParishSettings {
+  parishName: string;
+  sundayLiturgyTime: string; // HH:mm format
+  saturdayVespersTime?: string;
+  weekdayLiturgyTime?: string;
+  julianCalendarEnabled: boolean;
+}
+
+export interface OrthodoxEvent {
+  name: string;
+  nameEn?: string;
+  date: string;
+  moveable: boolean;
+  liturgyRequired: boolean;
+  level: 'great' | 'major' | 'minor' | 'regular';
+  fasting?: 'none' | 'regular' | 'strict' | 'lent';
+}
+
+export interface Conflict {
+  meeting: Meeting;
+  orthodoxEvent: OrthodoxEvent;
+  conflictType: 'sunday' | 'great_feast' | 'major_feast' | 'weekday_liturgy';
+  severity: 'high' | 'medium' | 'low';
+  message: string;
+}
+
+export type ViewMode = 'month' | 'week' | 'day' | 'agenda';
+```
+
+## DATABASE SCHEMA (SQLite)
+```sql
+CREATE TABLE meetings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  date TEXT NOT NULL,
+  startTime TEXT NOT NULL,
+  endTime TEXT NOT NULL,
+  location TEXT,
+  notes TEXT,
+  createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+  updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## CRITICAL BUSINESS LOGIC
+
+### 1. JULIAN CALENDAR CALCULATION
+The Julian calendar is 13 days behind the Gregorian calendar. For any given date:
+```typescript
+const getJulianDate = (gregorianDate: Date): Date => {
+  return subDays(gregorianDate, 13);
+};
+```
+
+### 2. CONFLICT DETECTION RULES
+Detect when meetings conflict with church services:
+
+**HIGH SEVERITY (Red Warning):**
+- Meeting during Sunday Divine Liturgy
+- Meeting during Great Feast Liturgy (12 major feasts)
+- User MUST see strong warning
+
+**MEDIUM SEVERITY (Orange Warning):**  
+- Meeting during Major Feast Liturgy
+- Show warning but allow scheduling
+
+**LOW SEVERITY (Yellow Warning):**
+- Meeting during weekday services
+- Informational only
+
+**Liturgy Duration:**
+- Sunday/Great Feast: 2 hours
+- Weekday: 1.5 hours
+
+### 3. FASTING DETECTION
+Check if a date is a fasting day:
+- Every Wednesday and Friday (regular fast)
+- Great Lent (strict fast)
+- Dormition Fast (Aug 1-14)
+- Nativity Fast (Nov 15-Dec 24)
+- Apostles' Fast (variable dates)
+
+## SCREEN SPECIFICATIONS
+
+### 1. ONBOARDING SCREEN (app/onboarding.tsx)
+4-step wizard:
+1. **Welcome**: Enter parish name
+2. **Sunday Liturgy**: Set time (default 9:00 AM)
+3. **Other Services** (optional): Saturday Vespers, Weekday Liturgy
+4. **Julian Calendar**: Toggle on/off
+
+Navigation: Cannot access main app until completed
+Storage: Save to AsyncStorage
+
+### 2. MAIN CALENDAR SCREEN (app/(tabs)/index.tsx)
+**Features:**
+- Month view using react-native-calendars
+- Colored dots on dates:
+  - Gold: Great feast
+  - Blue: Major feast
+  - Green: Business meeting
+  - Red: Conflict exists
+- Tap date → Modal with:
+  - Orthodox events for that day
+  - Meetings scheduled
+  - Conflict warnings
+  - Add meeting button
+- Header shows parish name
+- Julian date display when enabled
+
+### 3. MEETINGS LIST SCREEN (app/(tabs)/meetings.tsx)
+**Sections:**
+- "Upcoming" - future meetings
+- "Past" - completed meetings
+
+**Each Meeting Card Shows:**
+- Title, date, time
+- Location (if set)
+- Red border if conflict exists
+- Tap to edit, long-press to delete
+
+**Empty State:**
+- Icon + "No meetings scheduled"
+- "Tap + to add your first meeting"
+
+### 4. ORTHODOX CALENDAR SCREEN (app/(tabs)/orthodox.tsx)
+**Filters:**
+- All events
+- Major feasts only
+- Great feasts only
+
+**Sections:**
+- "This Week"
+- "Next Month"
+
+**Each Event Shows:**
+- Saint/feast name (Romanian + English)
+- Date (Gregorian + Julian if enabled)
+- Liturgy indicator
+- Fasting status
+
+### 5. ADD/EDIT MEETING FORM (app/meeting/new.tsx & [id].tsx)
+**Fields:**
+- Title (required, text input)
+- Date (date picker, defaults to selected calendar date)
+- Start Time (time picker)
+- End Time (time picker, must be after start)
+- Location (optional, text input)
+- Notes (optional, multiline text)
+
+**Conflict Detection:**
+- Check on form change
+- Show warning banner if conflict detected
+- Warning includes:
+  - Conflict type (Sunday/Feast)
+  - Service time
+  - Severity color
+- Buttons: "Change Time" or "Schedule Anyway"
+
+**Validation:**
+- Title required
+- End time > Start time
+- Date cannot be in past
+
+### 6. SETTINGS SCREEN (app/(tabs)/settings.tsx)
+**Sections:**
+
+**Parish Information:**
+- Edit parish name
+- Edit Sunday Liturgy time
+- Edit Saturday Vespers time
+- Edit Weekday Liturgy time
+
+**Calendar Display:**
+- Toggle Julian calendar dates
+- Default view (Month/Week/Day)
+
+**Data Management:**
+- Clear all meetings
+- Reset app (with confirmation)
+
+**About:**
+- App version
+- Credits
+- Liturgical calendar source
+
+## STATE MANAGEMENT (Zustand Store)
+```typescript
+interface AppStore {
+  // State
+  parishSettings: ParishSettings | null;
+  meetings: Meeting[];
+  selectedDate: string;
+  viewMode: ViewMode;
+  julianCalendarEnabled: boolean;
+  isOnboarded: boolean;
+  isLoading: boolean;
+  
+  // Actions
+  setParishSettings: (settings: ParishSettings | null) => void;
+  setMeetings: (meetings: Meeting[]) => void;
+  addMeeting: (meeting: Meeting) => void;
+  updateMeeting: (meeting: Meeting) => void;
+  removeMeeting: (id: number) => void;
+  setSelectedDate: (date: string) => void;
+  setViewMode: (mode: ViewMode) => void;
+  toggleJulianCalendar: () => void;
+  setOnboarded: (onboarded: boolean) => void;
+  reset: () => void;
+}
+```
+
+## APP INITIALIZATION FLOW
+1. Open app → Check AsyncStorage for onboarding status
+2. If not onboarded → Show onboarding screen
+3. If onboarded → Initialize:
+   - Load parish settings from AsyncStorage
+   - Initialize SQLite database
+   - Load all meetings
+   - Set default view to current month
+4. Show main calendar
+
+## UI/UX REQUIREMENTS
+- **Font**: System default
+- **Touch targets**: Minimum 44x44 points
+- **Loading states**: Show activity indicator
+- **Error handling**: User-friendly error messages
+- **Animations**: Smooth transitions between screens
+- **Accessibility**: Proper labels for screen readers
+- **Theme**: Light mode only (for MVP)
+
+## TESTING CHECKLIST
+- [ ] Onboarding saves parish settings
+- [ ] Calendar displays current month
+- [ ] Orthodox events show on correct dates
+- [ ] Julian dates calculate correctly (13 days behind)
+- [ ] Fasting days marked (Wed/Fri + periods)
+- [ ] Add meeting with all fields
+- [ ] Edit existing meeting
+- [ ] Delete meeting (with confirmation)
+- [ ] Conflict detection for Sunday Liturgy
+- [ ] Conflict detection for feast days
+- [ ] Settings update parish times
+- [ ] Julian calendar toggle works
+- [ ] App remembers settings after restart
+- [ ] Database persists meetings
+
+## IMPLEMENTATION ORDER
+1. Set up Expo project with TypeScript
+2. Install all dependencies
+3. Create folder structure
+4. Add Orthodox calendar data JSON
+5. Implement database initialization
+6. Create Zustand store
+7. Build onboarding flow
+8. Implement main calendar view
+9. Add meeting CRUD operations
+10. Implement conflict detection
+11. Create meetings list view
+12. Build Orthodox calendar view
+13. Add settings screen
+14. Test all features
+15. Polish UI/UX
+
+## EXPO-SPECIFIC CONFIGURATION
+```json
+{
+  "expo": {
+    "name": "Liturgical Time",
+    "slug": "liturgical-time",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.orthodox.liturgicaltime"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.orthodox.liturgicaltime"
+    }
+  }
+}
+```
+
+## CRITICAL IMPLEMENTATION NOTES
+
+1. **Date/Time Handling**: 
+   - Always use ISO 8601 format for dates (YYYY-MM-DD)
+   - Use 24-hour format for times (HH:mm)
+   - Use date-fns for all date operations
+
+2. **Database Operations**:
+   - All database operations must be async
+   - Always handle errors with try/catch
+   - Update Zustand store after database operations
+
+3. **Conflict Detection**:
+   - Run on every meeting save/update
+   - Check time ranges overlap, not just date
+   - Consider liturgy duration (2hrs Sunday, 1.5hrs weekday)
+
+4. **Performance**:
+   - Lazy load calendar data (current month + adjacent)
+   - Memoize expensive calculations
+   - Use FlatList for long lists
+
+5. **Storage**:
+   - AsyncStorage for settings (small data)
+   - SQLite for meetings (structured data)
+   - JSON file for Orthodox calendar (static data)
+
+## ERROR MESSAGES
+- "Please enter a meeting title"
+- "End time must be after start time"
+- "Cannot schedule meetings in the past"
+- "This conflicts with Divine Liturgy at [Parish Name]"
+- "Failed to save meeting. Please try again."
+- "Failed to load calendar data."
+
+## SUCCESS METRICS
+The app is complete when:
+1. User completes onboarding successfully
+2. Calendar shows Orthodox events with correct dates
+3. User can add/edit/delete meetings
+4. Conflicts are detected and warnings shown
+5. Julian calendar toggle works correctly
+6. All data persists between app sessions
+7. No crashes or major bugs
+
+This is a COMPLETE specification. Build the entire app with all features described above.

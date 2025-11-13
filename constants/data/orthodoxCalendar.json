@@ -1,0 +1,197 @@
+{
+  "greatFeasts": [
+    {
+      "name": "Nașterea Domnului (Crăciunul)",
+      "nameEn": "Nativity of Christ",
+      "date": "12-25",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Botezul Domnului (Boboteaza)",
+      "nameEn": "Theophany",
+      "date": "01-06",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Întâmpinarea Domnului",
+      "nameEn": "Presentation of Christ",
+      "date": "02-02",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Buna Vestire",
+      "nameEn": "Annunciation",
+      "date": "03-25",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Schimbarea la Față",
+      "nameEn": "Transfiguration",
+      "date": "08-06",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Adormirea Maicii Domnului",
+      "nameEn": "Dormition of the Theotokos",
+      "date": "08-15",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Nașterea Maicii Domnului",
+      "nameEn": "Nativity of the Theotokos",
+      "date": "09-08",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Înălțarea Sfintei Cruci",
+      "nameEn": "Elevation of the Cross",
+      "date": "09-14",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great",
+      "fasting": "strict"
+    },
+    {
+      "name": "Intrarea în Biserică a Maicii Domnului",
+      "nameEn": "Entrance of the Theotokos",
+      "date": "11-21",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    }
+  ],
+  "moveableFeasts2024": {
+    "pascha": "2024-05-05",
+    "palmSunday": "2024-04-28",
+    "ascension": "2024-06-13",
+    "pentecost": "2024-06-23",
+    "allSaints": "2024-06-30"
+  },
+  "moveableFeasts2025": {
+    "pascha": "2025-04-20",
+    "palmSunday": "2025-04-13",
+    "ascension": "2025-05-29",
+    "pentecost": "2025-06-08",
+    "allSaints": "2025-06-15"
+  },
+  "moveableFeasts2026": {
+    "pascha": "2026-04-12",
+    "palmSunday": "2026-04-05",
+    "ascension": "2026-05-21",
+    "pentecost": "2026-05-31",
+    "allSaints": "2026-06-07"
+  },
+  "moveableFeasts2027": {
+    "pascha": "2027-05-02",
+    "palmSunday": "2027-04-25",
+    "ascension": "2027-06-10",
+    "pentecost": "2027-06-20",
+    "allSaints": "2027-06-27"
+  },
+  "moveableFeasts2028": {
+    "pascha": "2028-04-16",
+    "palmSunday": "2028-04-09",
+    "ascension": "2028-05-25",
+    "pentecost": "2028-06-04",
+    "allSaints": "2028-06-11"
+  },
+  "majorFeasts": [
+    {
+      "name": "Tăierea Împrejur și Sf. Vasile cel Mare",
+      "nameEn": "Circumcision & St. Basil",
+      "date": "01-01",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Ioan Botezătorul",
+      "nameEn": "St. John the Baptist",
+      "date": "01-07",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sfinții Trei Ierarhi",
+      "nameEn": "Three Holy Hierarchs",
+      "date": "01-30",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Mare Mucenic Gheorghe",
+      "nameEn": "St. George",
+      "date": "04-23",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Apostoli Petru și Pavel",
+      "nameEn": "Sts. Peter and Paul",
+      "date": "06-29",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Nicolae",
+      "nameEn": "St. Nicholas",
+      "date": "12-06",
+      "liturgyRequired": true,
+      "level": "major"
+    }
+  ],
+  "fastingPeriods": {
+    "greatLent2024": {
+      "start": "2024-03-18",
+      "end": "2024-05-04",
+      "type": "lent"
+    },
+    "greatLent2025": {
+      "start": "2025-03-03",
+      "end": "2025-04-19",
+      "type": "lent"
+    },
+    "greatLent2026": {
+      "start": "2026-02-23",
+      "end": "2026-04-11",
+      "type": "lent"
+    },
+    "greatLent2027": {
+      "start": "2027-03-15",
+      "end": "2027-05-01",
+      "type": "lent"
+    },
+    "greatLent2028": {
+      "start": "2028-02-28",
+      "end": "2028-04-15",
+      "type": "lent"
+    },
+    "dormitionFast": {
+      "start": "08-01",
+      "end": "08-14",
+      "type": "regular"
+    },
+    "nativityFast": {
+      "start": "11-15",
+      "end": "12-24",
+      "type": "regular"
+    }
+  },
+  "weeklyFasting": {
+    "wednesday": "regular",
+    "friday": "regular"
+  }
+}
