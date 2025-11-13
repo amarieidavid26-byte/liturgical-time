@@ -93,7 +93,7 @@ export default function OrthodoxScreen() {
           )}
           {item.liturgyRequired && (
             <View style={styles.detailRow}>
-              <Ionicons name="church" size={16} color={Colors.orthodox.royalBlue} />
+              <Ionicons name="business" size={16} color={Colors.orthodox.royalBlue} />
               <Text style={[styles.detailText, { color: Colors.orthodox.royalBlue }]}>
                 Divine Liturgy Required
               </Text>
