@@ -11,13 +11,83 @@ import {
 import { Calendar } from 'react-native-calendars';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
 import { getMeetingsByDate } from '../../lib/database/sqlite';
 import { getOrthodoxEventsForDate, formatJulianDate, isSunday } from '../../lib/calendar/orthodoxCalendar';
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting, OrthodoxEvent } from '../../lib/types';
+
+const CustomDay = ({ date, state, marking, onPress }: any) => {
+  const julianEnabled = useAppStore(state => state.julianCalendarEnabled);
+  const gregorianDate = parseISO(date.dateString);
+  
+  let julianMonth = '';
+  let julianDay = '';
+  
+  if (julianEnabled) {
+    const julianDateObj = subDays(gregorianDate, 13);
+    julianMonth = format(julianDateObj, 'MMM');
+    julianDay = format(julianDateObj, 'd');
+  }
+  
+  const isSelected = marking?.selected;
+  const selectedColor = marking?.selectedColor || Colors.orthodox.royalBlue;
+  
+  return (
+    <TouchableOpacity 
+      onPress={() => onPress(date)} 
+      style={{ 
+        alignItems: 'center', 
+        padding: 4,
+        backgroundColor: isSelected ? selectedColor : 'transparent',
+        borderRadius: 16,
+        width: 32,
+        height: julianEnabled ? 42 : 32,
+        justifyContent: 'center',
+      }}
+    >
+      <View style={{ alignItems: 'center' }}>
+        <Text style={{
+          color: state === 'disabled' ? '#d9d9d9' : isSelected ? Colors.orthodox.white : state === 'today' ? Colors.orthodox.royalBlue : '#2d4150',
+          fontWeight: state === 'today' || isSelected ? 'bold' : 'normal',
+          fontSize: 16,
+        }}>
+          {date.day}
+        </Text>
+        {julianEnabled && (
+          <Text style={{ 
+            fontSize: 9, 
+            color: isSelected ? Colors.orthodox.white : Colors.orthodox.burgundy, 
+            marginTop: 1,
+            opacity: isSelected ? 0.9 : 1,
+            textAlign: 'center',
+            lineHeight: 10,
+          }}>
+            {julianMonth} {julianDay}
+          </Text>
+        )}
+        {marking?.dots && marking.dots.length > 0 && (
+          <View style={{ flexDirection: 'row', marginTop: 2 }}>
+            {marking.dots.map((dot: any, index: number) => (
+              <View
+                key={index}
+                style={{
+                  width: 4,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: dot.color,
+                  marginHorizontal: 1
+                }}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 export default function CalendarScreen() {
   const { parishSettings, meetings, julianCalendarEnabled, selectedDate, setSelectedDate } = useAppStore();
@@ -97,6 +167,7 @@ export default function CalendarScreen() {
         markedDates={markedDates}
         markingType="multi-dot"
         onDayPress={handleDayPress}
+        dayComponent={CustomDay}
         theme={{
           todayTextColor: Colors.orthodox.royalBlue,
           selectedDayBackgroundColor: Colors.orthodox.royalBlue,

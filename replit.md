@@ -185,6 +185,9 @@ Preferred communication style: Simple, everyday language.
 **Calendar Improvements:**
 - **Updated:** Calendar now starts with Monday (European/Orthodox format)
 - **Feature:** Sunday appears at the end of the week (right side)
+- **Feature:** Custom day component displays Julian dates under each Gregorian date when Julian calendar is enabled
+- **Design:** Small burgundy text shows Julian month abbreviation below each day number
+- **UX:** Event dots still appear below dates for visual consistency
 
 **Meeting Management:**
 - **Feature:** Swipe-to-delete gesture for meetings using react-native-gesture-handler
