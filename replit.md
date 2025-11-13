@@ -50,6 +50,7 @@ Preferred communication style: Simple, everyday language.
 - Onboarding completion status
 - Parish settings backup/fallback
 - Julian calendar toggle state
+- Orthodox Calendar API response caching (24-hour expiration)
 
 **Data Flow:**
 1. App initializes database on first render (_layout.tsx)
@@ -58,6 +59,13 @@ Preferred communication style: Simple, everyday language.
 4. UI components read from Zustand store
 5. User actions update both database and store simultaneously
 
+**External API Integration:**
+- Orthodox Calendar API (`orthocal.info`) for live liturgical data
+- Fetches daily saints, readings, fasting rules, feast information, and tone
+- 24-hour cache using AsyncStorage to minimize API calls and enable offline use
+- Automatic fallback to local JSON data when API is unavailable
+- Supports Romanian jurisdiction by default (configurable for OCA, ROCOR, Greek)
+
 ### Business Logic
 
 **Orthodox Calendar Calculations** (`lib/calendar/orthodoxCalendar.ts`):
@@ -65,6 +73,13 @@ Preferred communication style: Simple, everyday language.
 - Moveable feast calculations based on Easter date (per year 2024-2028)
 - Julian calendar conversion (13-day offset)
 - Sunday detection for weekly liturgy conflicts
+
+**Live Orthodox Data API** (`lib/api/orthodoxAPI.ts`):
+- Fetches fresh daily Orthodox calendar data from orthocal.info
+- Returns saints commemorated, daily scripture readings, fasting level, feast days, and liturgical tone
+- Implements 24-hour caching strategy with AsyncStorage
+- Graceful degradation to local data when offline or API unavailable
+- Cache management utilities (clear cache, bulk date range fetching)
 
 **Conflict Detection Engine** (`lib/calendar/conflictDetection.ts`):
 - Compares meeting times against parish liturgy schedules
@@ -125,9 +140,26 @@ Preferred communication style: Simple, everyday language.
 - `expo-splash-screen`: Launch screen management
 - `expo-constants`: App configuration access
 
-**Data Source:**
+**Data Sources:**
 - `constants/data/orthodoxCalendar.json`: Static Orthodox liturgical calendar data (2024-2028)
+- `orthocal.info API`: Live Orthodox calendar data with daily updates
 
 **Development Tools:**
 - `eslint` with `eslint-config-expo`: Code linting
 - TypeScript with strict mode enabled
+- `@expo/ngrok`: Tunnel mode for cloud-based Expo development
+
+## Recent Changes
+
+### November 13, 2025 - Orthodox Calendar API Integration
+- **Added:** Live Orthodox calendar data integration via orthocal.info API
+- **Created:** `lib/api/orthodoxAPI.ts` with caching and offline fallback support
+- **Updated:** Orthodox Events tab now displays fresh daily data including:
+  - Saints commemorated today
+  - Daily scripture readings (Epistle & Gospel)
+  - Fasting rules for the day
+  - Current liturgical tone
+  - Feast day information
+- **Feature:** Refresh button to manually clear cache and reload data
+- **Feature:** 24-hour automatic cache expiration for optimal performance
+- **Feature:** Graceful fallback to local data when offline or API unavailable

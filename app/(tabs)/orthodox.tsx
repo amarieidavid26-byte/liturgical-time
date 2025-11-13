@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO, isWithinInterval, addDays } from 'date-fns';
@@ -12,12 +14,45 @@ import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
 import { getAllOrthodoxEvents, formatJulianDate } from '../../lib/calendar/orthodoxCalendar';
 import { OrthodoxEvent } from '../../lib/types';
+import { fetchOrthodoxData, OrthodoxAPIResponse, clearOrthodoxCache } from '../../lib/api/orthodoxAPI';
 
 type FilterType = 'all' | 'great' | 'major';
 
 export default function OrthodoxScreen() {
   const { julianCalendarEnabled } = useAppStore();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [todayData, setTodayData] = useState<OrthodoxAPIResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    loadTodayData();
+  }, []);
+
+  const loadTodayData = async () => {
+    try {
+      setLoading(true);
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const data = await fetchOrthodoxData(today, 'romanian');
+      setTodayData(data);
+    } catch (error) {
+      console.error('Failed to load today\'s data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await clearOrthodoxCache();
+      await loadTodayData();
+    } catch (error) {
+      console.error('Failed to refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const allEvents = useMemo(() => getAllOrthodoxEvents(), []);
 
@@ -112,9 +147,103 @@ export default function OrthodoxScreen() {
     );
   };
 
+  const renderTodayCard = () => {
+    if (loading) {
+      return (
+        <View style={styles.todayCard}>
+          <ActivityIndicator size="small" color={Colors.orthodox.royalBlue} />
+        </View>
+      );
+    }
+
+    if (!todayData) return null;
+
+    return (
+      <View style={styles.todayCard}>
+        <View style={styles.todayHeader}>
+          <View>
+            <Text style={styles.todayTitle}>Today's Orthodox Calendar</Text>
+            <Text style={styles.todayDate}>{format(new Date(), 'MMMM d, yyyy')}</Text>
+          </View>
+          <TouchableOpacity onPress={handleRefresh} disabled={refreshing}>
+            {refreshing ? (
+              <ActivityIndicator size="small" color={Colors.orthodox.royalBlue} />
+            ) : (
+              <Ionicons name="refresh" size={24} color={Colors.orthodox.royalBlue} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {todayData.feast && (
+          <View style={styles.todaySection}>
+            <View style={styles.todaySectionHeader}>
+              <Ionicons name="star" size={18} color={Colors.orthodox.gold} />
+              <Text style={styles.todaySectionTitle}>Feast Day</Text>
+            </View>
+            <Text style={styles.todayText}>{todayData.feast}</Text>
+          </View>
+        )}
+
+        {todayData.saints && todayData.saints.length > 0 && (
+          <View style={styles.todaySection}>
+            <View style={styles.todaySectionHeader}>
+              <Ionicons name="people" size={18} color={Colors.orthodox.royalBlue} />
+              <Text style={styles.todaySectionTitle}>Saints Commemorated</Text>
+            </View>
+            <ScrollView style={styles.saintsScroll} nestedScrollEnabled>
+              {todayData.saints.map((saint, index) => (
+                <Text key={index} style={styles.todayText}>• {saint}</Text>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {todayData.readings && (todayData.readings.epistle || todayData.readings.gospel) && (
+          <View style={styles.todaySection}>
+            <View style={styles.todaySectionHeader}>
+              <Ionicons name="book" size={18} color={Colors.orthodox.burgundy} />
+              <Text style={styles.todaySectionTitle}>Daily Readings</Text>
+            </View>
+            {todayData.readings.epistle && (
+              <Text style={styles.todayText}>Epistle: {todayData.readings.epistle}</Text>
+            )}
+            {todayData.readings.gospel && (
+              <Text style={styles.todayText}>Gospel: {todayData.readings.gospel}</Text>
+            )}
+          </View>
+        )}
+
+        {todayData.fasting && todayData.fasting !== 'none' && (
+          <View style={styles.todaySection}>
+            <View style={styles.todaySectionHeader}>
+              <Ionicons name="leaf" size={18} color={Colors.orthodox.burgundy} />
+              <Text style={styles.todaySectionTitle}>Fasting</Text>
+            </View>
+            <Text style={styles.todayText}>{todayData.fasting}</Text>
+          </View>
+        )}
+
+        {todayData.tone && (
+          <View style={styles.todaySection}>
+            <View style={styles.todaySectionHeader}>
+              <Ionicons name="musical-notes" size={18} color={Colors.orthodox.darkGray} />
+              <Text style={styles.todaySectionTitle}>Tone</Text>
+            </View>
+            <Text style={styles.todayText}>Tone {todayData.tone}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.filterContainer}>
+      <ScrollView>
+        {renderTodayCard()}
+        
+        <Text style={styles.mainSectionTitle}>Upcoming Feasts (2024-2028)</Text>
+        
+        <View style={styles.filterContainer}>
         <TouchableOpacity
           style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
           onPress={() => setFilter('all')}
@@ -161,7 +290,9 @@ export default function OrthodoxScreen() {
           </>
         }
         contentContainerStyle={styles.listContent}
+        scrollEnabled={false}
       />
+      </ScrollView>
     </View>
   );
 }
@@ -170,6 +301,64 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.orthodox.white,
+  },
+  todayCard: {
+    backgroundColor: Colors.orthodox.lightGray,
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.orthodox.gold,
+  },
+  todayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  todayTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.orthodox.darkGray,
+  },
+  todayDate: {
+    fontSize: 14,
+    color: Colors.orthodox.darkGray,
+    opacity: 0.7,
+    marginTop: 4,
+  },
+  todaySection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  todaySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  todaySectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.orthodox.darkGray,
+  },
+  todayText: {
+    fontSize: 14,
+    color: Colors.orthodox.darkGray,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  saintsScroll: {
+    maxHeight: 120,
+  },
+  mainSectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: Colors.orthodox.darkGray,
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
   filterContainer: {
     flexDirection: 'row',
