@@ -1,0 +1,77 @@
+LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ LOG  Database initialized successfully
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ WARN  "church" is not a valid icon name for family "ionicons"
+ ERROR  [TypeError: Cannot convert undefined value to object] 
+
+Code: useThemeColor.ts
+  17 |     return colorFromProps;
+  18 |   } else {
+> 19 |     return Colors[theme][colorName];
+     |                  ^
+  20 |   }
+  21 | }
+  22 |
+Call Stack
+  useThemeColor (hooks/useThemeColor.ts:19:18)
+  ThemedView (components/ThemedView.tsx:11:40) 
+
+Code: ParallaxScrollView.tsx
+  46 |
+  47 |   return (
+> 48 |     <ThemedView style={styles.container}>
+     |     ^
+  49 |       <Animated.ScrollView
+  50 |         ref={scrollRef}
+  51 |         scrollEventThrottle={16}
+Call Stack
+  ParallaxScrollView (components/ParallaxScrollView.tsx:48:5)
+  TabTwoScreen (app/(tabs)/explore.tsx:13:5)
+  TabLayout (app/(tabs)/_layout.tsx:15:5)
+  RootLayout (app/_layout.tsx:63:7)
