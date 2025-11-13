@@ -2,8 +2,13 @@ import * as SQLite from 'expo-sqlite';
 import { Meeting } from '../types';
 
 let db: SQLite.SQLiteDatabase | null = null;
+let isInitialized = false;
 
 export const initDatabase = async (): Promise<void> => {
+  if (isInitialized && db) {
+    return;
+  }
+  
   try {
     db = await SQLite.openDatabaseAsync('orthodox_calendar.db');
     
@@ -31,6 +36,7 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
     
+    isInitialized = true;
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
