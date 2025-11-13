@@ -185,3 +185,8 @@ Preferred communication style: Simple, everyday language.
 **Calendar Improvements:**
 - **Updated:** Calendar now starts with Monday (European/Orthodox format)
 - **Feature:** Sunday appears at the end of the week (right side)
+
+**Meeting Management:**
+- **Feature:** Swipe-to-delete gesture for meetings using react-native-gesture-handler
+- **UI:** Red trash icon appears when swiping left on a meeting card
+- **UX:** Confirmation dialog appears before deleting a meeting
