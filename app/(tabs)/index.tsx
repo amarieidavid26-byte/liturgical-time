@@ -93,6 +93,7 @@ export default function CalendarScreen() {
       </View>
 
       <Calendar
+        firstDay={1}
         markedDates={markedDates}
         markingType="multi-dot"
         onDayPress={handleDayPress}
