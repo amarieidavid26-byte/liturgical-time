@@ -20,9 +20,11 @@ import { createMeeting, getAllMeetings, updateMeeting } from '../../lib/database
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
 import { syncMeetingToCalendar } from '../../lib/calendar/calendarSyncService';
+import { useTranslation } from '../../lib/hooks/useTranslation';
 
 export default function NewMeetingScreen() {
   const { selectedDate, parishSettings, setMeetings, calendarSyncEnabled, calendarId } = useAppStore();
+  const t = useTranslation();
   
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(selectedDate ? new Date(selectedDate) : new Date());
@@ -57,22 +59,22 @@ export default function NewMeetingScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert('Error', 'Please enter a meeting title');
+      Alert.alert(t.error, t.enterMeetingTitle);
       return;
     }
 
     if (endTime <= startTime) {
-      Alert.alert('Error', 'End time must be after start time');
+      Alert.alert(t.error, t.endTimeAfterStart);
       return;
     }
 
     if (conflict && conflict.severity === 'high') {
       Alert.alert(
-        'Conflict Detected',
-        `${conflict.message}. Do you want to schedule anyway?`,
+        t.conflictDetected,
+        `${conflict.message}. ${t.scheduleAnyway}?`,
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Schedule Anyway', onPress: () => saveMeeting() },
+          { text: t.cancel, style: 'cancel' },
+          { text: t.scheduleAnyway, onPress: () => saveMeeting() },
         ]
       );
     } else {
@@ -106,7 +108,7 @@ export default function NewMeetingScreen() {
       setMeetings(updated);
       router.back();
     } catch (error) {
-      Alert.alert('Error', 'Failed to create meeting');
+      Alert.alert(t.error, t.failedToCreateMeeting);
       console.error('Error creating meeting:', error);
     }
   };

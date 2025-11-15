@@ -103,7 +103,7 @@ export default function MeetingsScreen() {
                 swipeableRefs.current.delete(meeting.id);
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete meeting');
+              Alert.alert(t.error, t.failedToDeleteMeeting);
             }
           },
         },
@@ -182,7 +182,7 @@ export default function MeetingsScreen() {
           {item.calendarSource && (
             <View style={styles.syncBadge}>
               <Ionicons name="cloud-done" size={12} color={Colors.orthodox.success} />
-              <Text style={styles.syncText}>From {item.calendarSource}</Text>
+              <Text style={styles.syncText}>{t.from} {item.calendarSource}</Text>
             </View>
           )}
           {conflict && (

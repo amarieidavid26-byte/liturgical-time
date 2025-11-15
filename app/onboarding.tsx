@@ -17,6 +17,7 @@ import { saveParishSettingsDb } from '../lib/database/sqlite';
 import { ParishSettings } from '../lib/types';
 import Colors from '../constants/Colors';
 import useAppStore from '../lib/store/appStore';
+import { useTranslation } from '../lib/hooks/useTranslation';
 
 export default function OnboardingScreen() {
   const [step, setStep] = useState(1);
@@ -32,6 +33,7 @@ export default function OnboardingScreen() {
   const [includeWeekday, setIncludeWeekday] = useState(false);
 
   const { setParishSettings, setOnboarded } = useAppStore();
+  const t = useTranslation();
 
   const formatTime = (date: Date) => {
     const hours = date.getHours().toString().padStart(2, '0');
@@ -41,7 +43,7 @@ export default function OnboardingScreen() {
 
   const handleNext = () => {
     if (step === 1 && !parishName.trim()) {
-      Alert.alert('Required', 'Please enter your parish name');
+      Alert.alert(t.required, t.enterParishName);
       return;
     }
     if (step < 4) {
@@ -68,7 +70,7 @@ export default function OnboardingScreen() {
       setOnboarded(true);
       router.replace('/(tabs)');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save settings. Please try again.');
+      Alert.alert(t.error, t.failedToSaveSettings);
       console.error('Error completing onboarding:', error);
     }
   };
@@ -78,14 +80,14 @@ export default function OnboardingScreen() {
       case 1:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.title}>Welcome!</Text>
-            <Text style={styles.subtitle}>Let's set up your parish information</Text>
-            <Text style={styles.label}>Parish Name</Text>
+            <Text style={styles.title}>{t.welcome}!</Text>
+            <Text style={styles.subtitle}>{t.welcomeMessage}</Text>
+            <Text style={styles.label}>{t.parishName}</Text>
             <TextInput
               style={styles.input}
               value={parishName}
               onChangeText={setParishName}
-              placeholder="Enter your parish name"
+              placeholder={t.enterParishName}
               placeholderTextColor={Colors.orthodox.lightGray}
             />
           </View>
@@ -93,8 +95,8 @@ export default function OnboardingScreen() {
       case 2:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.title}>Sunday Divine Liturgy</Text>
-            <Text style={styles.subtitle}>When does your Sunday Liturgy usually start?</Text>
+            <Text style={styles.title}>{t.sundayLiturgyTime}</Text>
+            <Text style={styles.subtitle}>{t.welcomeMessage}</Text>
             <TouchableOpacity
               style={styles.timeButton}
               onPress={() => setShowSundayPicker(true)}
@@ -120,8 +122,8 @@ export default function OnboardingScreen() {
       case 3:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.title}>Other Services (Optional)</Text>
-            <Text style={styles.subtitle}>Add other regular service times</Text>
+            <Text style={styles.title}>{t.optional}</Text>
+            <Text style={styles.subtitle}>{t.parishSettings}</Text>
             
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Saturday Vespers</Text>
@@ -189,15 +191,15 @@ export default function OnboardingScreen() {
       case 4:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.title}>Julian Calendar</Text>
+            <Text style={styles.title}>{t.julianCalendar}</Text>
             <Text style={styles.subtitle}>
-              Display Julian calendar dates alongside Gregorian dates?
+              {t.useJulianCalendar}?
             </Text>
             <Text style={styles.info}>
-              The Julian calendar is 13 days behind the Gregorian calendar
+              {t.julianCalendar} (13 {t.date})
             </Text>
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Enable Julian Calendar</Text>
+              <Text style={styles.switchLabel}>{t.useJulianCalendar}</Text>
               <Switch
                 value={julianEnabled}
                 onValueChange={setJulianEnabled}
@@ -237,7 +239,7 @@ export default function OnboardingScreen() {
               style={[styles.button, styles.buttonSecondary]}
               onPress={() => setStep(step - 1)}
             >
-              <Text style={styles.buttonSecondaryText}>Back</Text>
+              <Text style={styles.buttonSecondaryText}>{t.cancel}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -245,7 +247,7 @@ export default function OnboardingScreen() {
             onPress={handleNext}
           >
             <Text style={styles.buttonPrimaryText}>
-              {step === 4 ? 'Complete' : 'Next'}
+              {step === 4 ? t.getStarted : t.save}
             </Text>
           </TouchableOpacity>
         </View>

@@ -63,7 +63,7 @@ export default function SettingsScreen() {
 
   const handleSaveSettings = async () => {
     if (!parishName.trim()) {
-      Alert.alert('Error', 'Parish name is required');
+      Alert.alert(t.error, t.parishNameRequired);
       return;
     }
 
@@ -77,27 +77,27 @@ export default function SettingsScreen() {
       await saveParishSettingsDb(settings);
       await saveParishSettings(settings);
       setParishSettings(settings);
-      Alert.alert('Success', 'Settings saved successfully');
+      Alert.alert(t.success, t.settingsSaved);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save settings');
+      Alert.alert(t.error, t.failedToSaveSettings);
     }
   };
 
   const handleClearMeetings = () => {
     Alert.alert(
-      'Clear All Meetings',
-      'Are you sure you want to delete all meetings? This action cannot be undone.',
+      t.clearAllMeetings,
+      `${t.clearAllMeetingsConfirm} ${t.cannotBeUndone}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Clear All',
+          text: t.clearAllMeetings,
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteAllMeetings();
-              Alert.alert('Success', 'All meetings have been deleted');
+              Alert.alert(t.success, t.allMeetingsDeleted);
             } catch (error) {
-              Alert.alert('Error', 'Failed to clear meetings');
+              Alert.alert(t.error, t.failedToClearMeetings);
             }
           },
         },
@@ -107,12 +107,12 @@ export default function SettingsScreen() {
 
   const handleResetApp = () => {
     Alert.alert(
-      'Reset App',
-      'Are you sure you want to reset the app? This will delete all data including parish settings and meetings. This action cannot be undone.',
+      t.resetApp,
+      `${t.resetAppConfirm} ${t.cannotBeUndone}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Reset',
+          text: t.resetApp,
           style: 'destructive',
           onPress: async () => {
             try {
@@ -122,7 +122,7 @@ export default function SettingsScreen() {
               reset();
               router.replace('/onboarding' as any);
             } catch (error) {
-              Alert.alert('Error', 'Failed to reset app');
+              Alert.alert(t.error, t.failedToResetApp);
             }
           },
         },
@@ -140,13 +140,15 @@ export default function SettingsScreen() {
       const meetings = await getAllMeetings();
       setMeetings(meetings);
       
-      Alert.alert(
-        'Sync Complete',
-        `Imported: ${result.imported} new meetings\nUpdated: ${syncResult.updated} meetings\nDeleted: ${syncResult.deleted} meetings\nSkipped: ${result.skipped} duplicates`
-      );
+      const message = t.syncCompleteMessage
+        .replace('{imported}', result.imported.toString())
+        .replace('{updated}', syncResult.updated.toString())
+        .replace('{deleted}', syncResult.deleted.toString())
+        .replace('{skipped}', result.skipped.toString());
+      Alert.alert(t.syncComplete, message);
     } catch (error) {
       console.error('Manual sync error:', error);
-      Alert.alert('Sync Error', 'Failed to sync calendar. Please try again.');
+      Alert.alert(t.syncError, t.failedToSyncCalendar);
     } finally {
       setIsSyncing(false);
     }
@@ -167,25 +169,25 @@ export default function SettingsScreen() {
             await saveCalendarId(newCalendarId);
             await saveCalendarSyncEnabled(true);
             Alert.alert(
-              'Calendar Sync Enabled',
-              'Your meetings will now be synchronized with your device calendar under "Timpul Liturgic".'
+              t.calendarSyncEnabled,
+              t.calendarSyncEnabledMessage
             );
           } else {
-            Alert.alert('Error', 'Failed to create calendar. Please try again.');
+            Alert.alert(t.error, t.failedToCreateCalendar);
             setCalendarSyncEnabled(false);
             await saveCalendarSyncEnabled(false);
           }
         } else {
           Alert.alert(
-            'Permission Denied',
-            'Calendar access is required to sync meetings. Please enable calendar permissions in your device settings.'
+            t.permissionDenied,
+            t.permissionDeniedMessage
           );
           setCalendarSyncEnabled(false);
           await saveCalendarSyncEnabled(false);
         }
       } catch (error) {
         console.error('Error enabling calendar sync:', error);
-        Alert.alert('Error', 'Failed to enable calendar sync');
+        Alert.alert(t.error, t.failedToEnableSync);
         setCalendarSyncEnabled(false);
         await saveCalendarSyncEnabled(false);
       } finally {
@@ -195,8 +197,8 @@ export default function SettingsScreen() {
       setCalendarSyncEnabled(false);
       await saveCalendarSyncEnabled(false);
       Alert.alert(
-        'Calendar Sync Disabled',
-        'New meetings will no longer be synced to your device calendar. Existing calendar events will remain.'
+        t.calendarSyncDisabled,
+        t.calendarSyncDisabledMessage
       );
     }
   };
@@ -204,20 +206,20 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Parish Information</Text>
+        <Text style={styles.sectionTitle}>{t.parishSettings}</Text>
         
         <View style={styles.settingRow}>
-          <Text style={styles.label}>Parish Name</Text>
+          <Text style={styles.label}>{t.parishName}</Text>
           <TextInput
             style={styles.input}
             value={parishName}
             onChangeText={setParishName}
-            placeholder="Enter parish name"
+            placeholder={t.parishName}
           />
         </View>
 
         <View style={styles.settingRow}>
-          <Text style={styles.label}>Sunday Liturgy Time</Text>
+          <Text style={styles.label}>{t.sundayLiturgyTime}</Text>
           <TouchableOpacity
             style={styles.timeButton}
             onPress={() => setShowSundayPicker(true)}
@@ -243,17 +245,17 @@ export default function SettingsScreen() {
         )}
 
         <TouchableOpacity style={styles.saveButton} onPress={handleSaveSettings}>
-          <Text style={styles.saveButtonText}>Save Settings</Text>
+          <Text style={styles.saveButtonText}>{t.save}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Calendar Display</Text>
+        <Text style={styles.sectionTitle}>{t.orthodoxCalendar}</Text>
         
         <View style={styles.settingRow}>
           <View>
             <Text style={styles.label}>{t.useJulianCalendar}</Text>
-            <Text style={styles.sublabel}>Display Julian dates alongside Gregorian</Text>
+            <Text style={styles.sublabel}>{t.julianCalendar}</Text>
           </View>
           <Switch
             value={julianCalendarEnabled}
@@ -288,25 +290,25 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Calendar Sync</Text>
+        <Text style={styles.sectionTitle}>{t.calendarSync}</Text>
         
         <View style={styles.settingRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Sync with Device Calendar</Text>
+            <Text style={styles.label}>{t.syncWithDeviceCalendar}</Text>
             <Text style={styles.sublabel}>
-              Automatically sync meetings to your device calendar
+              {t.autoSyncDescription}
             </Text>
             {calendarSyncEnabled && calendarPermissionStatus === 'granted' && (
               <View style={styles.syncStatusBadge}>
                 <Ionicons name="checkmark-circle" size={14} color={Colors.orthodox.success} />
-                <Text style={styles.syncStatusText}>Syncing to "Timpul Liturgic"</Text>
+                <Text style={styles.syncStatusText}>{t.syncingTo} "Timpul Liturgic"</Text>
               </View>
             )}
             {calendarPermissionStatus === 'denied' && (
               <View style={[styles.syncStatusBadge, { backgroundColor: '#FFEBEE' }]}>
                 <Ionicons name="alert-circle" size={14} color={Colors.orthodox.danger} />
                 <Text style={[styles.syncStatusText, { color: Colors.orthodox.danger }]}>
-                  Permission denied
+                  {t.permissionDenied}
                 </Text>
               </View>
             )}
@@ -335,7 +337,7 @@ export default function SettingsScreen() {
               color={isSyncing ? Colors.orthodox.darkGray : Colors.orthodox.royalBlue} 
             />
             <Text style={[styles.syncButtonText, isSyncing && styles.syncButtonTextDisabled]}>
-              {isSyncing ? 'Syncing...' : 'Sync Now'}
+              {isSyncing ? t.syncing : t.syncNow}
             </Text>
             {isSyncing && <ActivityIndicator size="small" color={Colors.orthodox.royalBlue} />}
           </TouchableOpacity>
@@ -343,28 +345,28 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Data Management</Text>
+        <Text style={styles.sectionTitle}>{t.dataManagement}</Text>
         
         <TouchableOpacity style={styles.dangerButton} onPress={handleClearMeetings}>
           <Ionicons name="trash" size={20} color={Colors.orthodox.red} />
-          <Text style={styles.dangerButtonText}>Clear All Meetings</Text>
+          <Text style={styles.dangerButtonText}>{t.clearAllMeetings}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.dangerButton} onPress={handleResetApp}>
           <Ionicons name="refresh" size={20} color={Colors.orthodox.red} />
-          <Text style={styles.dangerButtonText}>Reset App</Text>
+          <Text style={styles.dangerButtonText}>{t.resetApp}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>About</Text>
+        <Text style={styles.sectionTitle}>{t.about}</Text>
         <View style={styles.aboutRow}>
-          <Text style={styles.aboutLabel}>App Version</Text>
+          <Text style={styles.aboutLabel}>{t.appVersion}</Text>
           <Text style={styles.aboutValue}>1.0.0</Text>
         </View>
         <View style={styles.aboutRow}>
-          <Text style={styles.aboutLabel}>Calendar Source</Text>
-          <Text style={styles.aboutValue}>Romanian Orthodox Calendar</Text>
+          <Text style={styles.aboutLabel}>{t.calendarSource}</Text>
+          <Text style={styles.aboutValue}>{t.romanianOrthodoxCalendar}</Text>
         </View>
       </View>
     </ScrollView>
