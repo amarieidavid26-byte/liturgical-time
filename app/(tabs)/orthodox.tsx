@@ -12,7 +12,7 @@ import { format, addMonths } from 'date-fns';
 import { ro } from 'date-fns/locale';
 import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
-import { getAllOrthodoxEvents, formatJulianDate, getOrthodoxEventsForDate, isFastingDay } from '../../lib/calendar/orthodoxCalendar';
+import { getAllOrthodoxEvents, formatJulianDate, getOrthodoxEventsForDate, isFastingDay, getCurrentLiturgicalPeriod, getCurrentTone } from '../../lib/calendar/orthodoxCalendar';
 import { OrthodoxEvent } from '../../lib/types';
 import { fetchOrthodoxData, OrthodoxAPIResponse, clearOrthodoxCache } from '../../lib/api/orthodoxAPI';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,97 +31,6 @@ interface GroupedFeast {
   isSunday: boolean;
 }
 
-const getCurrentLiturgicalPeriod = (date: Date): string => {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const year = date.getFullYear();
-  
-  const easterDates: { [key: number]: Date } = {
-    2024: new Date(2024, 4, 5),
-    2025: new Date(2025, 3, 20),
-    2026: new Date(2026, 3, 12),
-    2027: new Date(2027, 4, 2),
-    2028: new Date(2028, 3, 16),
-    2029: new Date(2029, 3, 8),
-    2030: new Date(2030, 3, 28),
-  };
-  
-  const easter = easterDates[year];
-  
-  if (easter) {
-    const daysSinceEaster = Math.floor((date.getTime() - easter.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysSinceEaster >= -49 && daysSinceEaster < -7) {
-      return 'Postul Mare';
-    }
-    
-    if (daysSinceEaster >= -7 && daysSinceEaster < 0) {
-      return 'Săptămâna Patimilor';
-    }
-    
-    if (daysSinceEaster === 0) {
-      return 'Învierea Domnului - Paștele';
-    }
-    
-    if (daysSinceEaster >= 1 && daysSinceEaster <= 7) {
-      return 'Săptămâna Luminată';
-    }
-    
-    if (daysSinceEaster >= 8 && daysSinceEaster <= 38) {
-      return 'Perioada Paștilor';
-    }
-    
-    if (daysSinceEaster === 39) {
-      return 'Înălțarea Domnului';
-    }
-    
-    if (daysSinceEaster >= 40 && daysSinceEaster <= 48) {
-      return 'După Înălțare';
-    }
-    
-    if (daysSinceEaster === 49) {
-      return 'Pogorârea Sfântului Duh - Rusaliile';
-    }
-    
-    if (daysSinceEaster === 50) {
-      return 'Duminica Tuturor Sfinților';
-    }
-    
-    if (daysSinceEaster >= 51) {
-      const apostlesFastEnd = new Date(year, 5, 29);
-      if (date <= apostlesFastEnd) {
-        return 'Postul Sfinților Apostoli';
-      }
-    }
-  }
-  
-  if ((month === 11 && day >= 15) || (month === 12 && day <= 24)) {
-    return 'Postul Crăciunului';
-  }
-  
-  if ((month === 12 && day >= 25) || (month === 1 && day <= 6)) {
-    return 'Perioada de Crăciun';
-  }
-  
-  if (month === 1 && day >= 7 && day <= 19) {
-    return 'După Botez';
-  }
-  
-  if (month === 8 && day >= 1 && day <= 14) {
-    return 'Postul Adormirii Maicii Domnului';
-  }
-  
-  if (month === 8 && day === 15) {
-    return 'Adormirea Maicii Domnului';
-  }
-  
-  if (month === 9 && day === 14) {
-    return 'Înălțarea Sfintei Cruci';
-  }
-  
-  return 'Perioada de peste an';
-};
-
 interface GroupedFeasts {
   today: GroupedFeast[];
   thisWeek: GroupedFeast[];
@@ -130,9 +39,10 @@ interface GroupedFeasts {
   later: GroupedFeast[];
 }
 
-const LiturgicalHeader = ({ tone }: { tone?: number }) => {
+const LiturgicalHeader = () => {
   const today = new Date();
   const currentPeriod = getCurrentLiturgicalPeriod(today);
+  const currentTone = getCurrentTone(today);
   
   return (
     <LinearGradient 
@@ -146,11 +56,9 @@ const LiturgicalHeader = ({ tone }: { tone?: number }) => {
       <Text style={{ color: '#FFD700', fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>
         {currentPeriod}
       </Text>
-      {tone && (
-        <Text style={{ color: '#FFF', fontSize: 14, marginTop: 4 }}>
-          Glasul {tone}
-        </Text>
-      )}
+      <Text style={{ color: '#FFF', fontSize: 14, marginTop: 4 }}>
+        Glasul {currentTone}
+      </Text>
     </LinearGradient>
   );
 };
@@ -438,7 +346,7 @@ export default function OrthodoxScreen() {
   return (
     <View style={styles.container}>
       <ScrollView>
-        <LiturgicalHeader tone={todayData?.tone} />
+        <LiturgicalHeader />
         {renderTodayCard()}
         
         <Text style={styles.mainSectionTitle}>Sărbători Viitoare</Text>

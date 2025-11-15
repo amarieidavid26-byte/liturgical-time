@@ -1,4 +1,4 @@
-import { format, subDays, isAfter, isBefore, isSameDay, parseISO } from 'date-fns';
+import { format, subDays, isAfter, isBefore, isSameDay, parseISO, differenceInDays, addDays } from 'date-fns';
 import { OrthodoxEvent } from '../types';
 import orthodoxData from '../../constants/data/orthodoxCalendar.json';
 
@@ -235,4 +235,84 @@ export const getAllOrthodoxEvents = (): OrthodoxEvent[] => {
     const dateB = parseISO(b.date);
     return dateA.getTime() - dateB.getTime();
   });
+};
+
+export const getCurrentLiturgicalPeriod = (date: Date): string => {
+  const monthDay = format(date, 'MM-dd');
+  const year = date.getFullYear();
+  
+  const easterDates: { [key: number]: Date } = {
+    2024: new Date('2024-05-05'),
+    2025: new Date('2025-04-20'),
+    2026: new Date('2026-04-12'),
+    2027: new Date('2027-05-02'),
+    2028: new Date('2028-04-16'),
+    2029: new Date('2029-04-08'),
+    2030: new Date('2030-04-28'),
+  };
+  
+  const currentPascha = easterDates[year];
+  if (!currentPascha) {
+    return '📖 Perioada de peste An';
+  }
+  
+  const daysFromPascha = differenceInDays(date, currentPascha);
+  
+  if (daysFromPascha >= 0 && daysFromPascha <= 7) {
+    return '🌟 Săptămâna Luminată';
+  }
+  if (daysFromPascha > 7 && daysFromPascha <= 49) {
+    return `⭐ Perioada Paștilor - Săptămâna ${Math.floor(daysFromPascha / 7) + 1}`;
+  }
+  
+  if ((monthDay >= '11-15' && monthDay <= '11-30') || 
+      (monthDay >= '12-01' && monthDay <= '12-24')) {
+    return '🕯️ Postul Crăciunului (Postul Sfintei Filoftei)';
+  }
+  
+  if ((monthDay >= '12-25' && monthDay <= '12-31') || 
+      (monthDay >= '01-01' && monthDay <= '01-06')) {
+    return '⭐ Perioada Crăciunului';
+  }
+  
+  const greatLentStart = subDays(currentPascha, 48);
+  if (date >= greatLentStart && date < currentPascha) {
+    const week = Math.floor(differenceInDays(date, greatLentStart) / 7) + 1;
+    return `📿 Postul Mare - Săptămâna ${week}`;
+  }
+  
+  const pentecost = addDays(currentPascha, 49);
+  const peterPaul = new Date(year + '-06-29');
+  if (date > pentecost && date < peterPaul) {
+    return '🔑 Postul Sfinților Apostoli';
+  }
+  
+  if (monthDay >= '08-01' && monthDay <= '08-14') {
+    return '🌸 Postul Adormirii Maicii Domnului';
+  }
+  
+  return '📖 Perioada de peste An';
+};
+
+export const getCurrentTone = (date: Date): number => {
+  const year = date.getFullYear();
+  
+  const easterDates: { [key: number]: Date } = {
+    2024: new Date('2024-05-05'),
+    2025: new Date('2025-04-20'),
+    2026: new Date('2026-04-12'),
+    2027: new Date('2027-05-02'),
+    2028: new Date('2028-04-16'),
+    2029: new Date('2029-04-08'),
+    2030: new Date('2030-04-28'),
+  };
+  
+  const pascha = easterDates[year];
+  if (!pascha) {
+    return 1;
+  }
+  
+  const weeksSincePascha = Math.floor(differenceInDays(date, pascha) / 7);
+  
+  return ((weeksSincePascha % 8) + 8) % 8 + 1;
 };
