@@ -9,12 +9,14 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { format, parseISO, isWithinInterval, addDays } from 'date-fns';
+import { format, parseISO, isWithinInterval, addDays, addMonths } from 'date-fns';
 import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
-import { getAllOrthodoxEvents, formatJulianDate } from '../../lib/calendar/orthodoxCalendar';
+import { getAllOrthodoxEvents, formatJulianDate, getOrthodoxEventsForDate, isFastingDay } from '../../lib/calendar/orthodoxCalendar';
 import { OrthodoxEvent } from '../../lib/types';
 import { fetchOrthodoxData, OrthodoxAPIResponse, clearOrthodoxCache } from '../../lib/api/orthodoxAPI';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Card } from '../../components/ui/Card';
 
 type FilterType = 'all' | 'great' | 'major';
 
