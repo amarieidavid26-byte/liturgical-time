@@ -31,6 +31,97 @@ interface GroupedFeast {
   isSunday: boolean;
 }
 
+const getCurrentLiturgicalPeriod = (date: Date): string => {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const year = date.getFullYear();
+  
+  const easterDates: { [key: number]: Date } = {
+    2024: new Date(2024, 4, 5),
+    2025: new Date(2025, 3, 20),
+    2026: new Date(2026, 3, 12),
+    2027: new Date(2027, 4, 2),
+    2028: new Date(2028, 3, 16),
+    2029: new Date(2029, 3, 8),
+    2030: new Date(2030, 3, 28),
+  };
+  
+  const easter = easterDates[year];
+  
+  if (easter) {
+    const daysSinceEaster = Math.floor((date.getTime() - easter.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysSinceEaster >= -49 && daysSinceEaster < -7) {
+      return 'Postul Mare';
+    }
+    
+    if (daysSinceEaster >= -7 && daysSinceEaster < 0) {
+      return 'Săptămâna Patimilor';
+    }
+    
+    if (daysSinceEaster === 0) {
+      return 'Învierea Domnului - Paștele';
+    }
+    
+    if (daysSinceEaster >= 1 && daysSinceEaster <= 7) {
+      return 'Săptămâna Luminată';
+    }
+    
+    if (daysSinceEaster >= 8 && daysSinceEaster <= 38) {
+      return 'Perioada Paștilor';
+    }
+    
+    if (daysSinceEaster === 39) {
+      return 'Înălțarea Domnului';
+    }
+    
+    if (daysSinceEaster >= 40 && daysSinceEaster <= 48) {
+      return 'După Înălțare';
+    }
+    
+    if (daysSinceEaster === 49) {
+      return 'Pogorârea Sfântului Duh - Rusaliile';
+    }
+    
+    if (daysSinceEaster === 50) {
+      return 'Duminica Tuturor Sfinților';
+    }
+    
+    if (daysSinceEaster >= 51) {
+      const apostlesFastEnd = new Date(year, 5, 29);
+      if (date <= apostlesFastEnd) {
+        return 'Postul Sfinților Apostoli';
+      }
+    }
+  }
+  
+  if ((month === 11 && day >= 15) || (month === 12 && day <= 24)) {
+    return 'Postul Crăciunului';
+  }
+  
+  if ((month === 12 && day >= 25) || (month === 1 && day <= 6)) {
+    return 'Perioada de Crăciun';
+  }
+  
+  if (month === 1 && day >= 7 && day <= 19) {
+    return 'După Botez';
+  }
+  
+  if (month === 8 && day >= 1 && day <= 14) {
+    return 'Postul Adormirii Maicii Domnului';
+  }
+  
+  if (month === 8 && day === 15) {
+    return 'Adormirea Maicii Domnului';
+  }
+  
+  if (month === 9 && day === 14) {
+    return 'Înălțarea Sfintei Cruci';
+  }
+  
+  return 'Perioada de peste an';
+};
+
 interface GroupedFeasts {
   today: GroupedFeast[];
   thisWeek: GroupedFeast[];
@@ -38,6 +129,31 @@ interface GroupedFeasts {
   nextMonth: GroupedFeast[];
   later: GroupedFeast[];
 }
+
+const LiturgicalHeader = ({ tone }: { tone?: number }) => {
+  const today = new Date();
+  const currentPeriod = getCurrentLiturgicalPeriod(today);
+  
+  return (
+    <LinearGradient 
+      colors={['#800020', '#4A0012']} 
+      style={{
+        padding: 20,
+        alignItems: 'center',
+        marginBottom: 10
+      }}
+    >
+      <Text style={{ color: '#FFD700', fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>
+        {currentPeriod}
+      </Text>
+      {tone && (
+        <Text style={{ color: '#FFF', fontSize: 14, marginTop: 4 }}>
+          Glasul {tone}
+        </Text>
+      )}
+    </LinearGradient>
+  );
+};
 
 export default function OrthodoxScreen() {
   const { julianCalendarEnabled } = useAppStore();
@@ -137,96 +253,95 @@ export default function OrthodoxScreen() {
   };
 
   const renderFeastCard = (feast: GroupedFeast, index: number) => {
-    const hasGreatFeast = feast.events.some(e => e.level === 'great');
-    const hasMajorFeast = feast.events.some(e => e.level === 'major');
+    const getFastingLabel = (fasting: string): string => {
+      switch (fasting) {
+        case 'strict': return 'Post Aspru';
+        case 'lent': return 'Post Mare';
+        case 'regular': return 'Post';
+        default: return '';
+      }
+    };
     
     return (
       <View 
         key={`feast-${feast.dateStr}-${index}`}
-        style={[
-          styles.eventCard,
-          hasGreatFeast && styles.eventCardGreat,
-        ]}
+        style={{
+          backgroundColor: '#FFF',
+          marginHorizontal: 12,
+          marginVertical: 6,
+          borderRadius: 12,
+          shadowColor: '#000',
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+          flexDirection: 'row',
+          overflow: 'hidden'
+        }}
       >
-        <View style={styles.eventHeader}>
-          <View style={styles.eventTitleContainer}>
-            <View style={styles.detailRow}>
-              <Ionicons name="calendar" size={16} color={Colors.orthodox.darkGray} />
-              <Text style={styles.detailText}>
-                {format(feast.date, 'EEEE, d MMMM yyyy', { locale: ro })}
-              </Text>
-            </View>
-            {julianCalendarEnabled && (
-              <View style={styles.detailRow}>
-                <Ionicons name="calendar-outline" size={16} color={Colors.orthodox.darkGray} />
-                <Text style={styles.detailText}>
-                  Julian: {formatJulianDate(feast.date)}
+        <View style={{
+          width: 80,
+          backgroundColor: feast.isSunday ? '#FFD700' : '#800020',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 10
+        }}>
+          <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#FFF' }}>
+            {format(feast.date, 'd', { locale: ro })}
+          </Text>
+          <Text style={{ fontSize: 11, color: '#FFF', textTransform: 'uppercase' }}>
+            {format(feast.date, 'MMM', { locale: ro })}
+          </Text>
+          {feast.isSunday && (
+            <Text style={{ fontSize: 9, color: '#800020', marginTop: 4, fontWeight: 'bold', backgroundColor: '#FFF', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 }}>
+              DUMINICĂ
+            </Text>
+          )}
+        </View>
+        
+        <View style={{ flex: 1, padding: 12 }}>
+          {feast.events.length > 0 ? (
+            feast.events.map((event, idx) => (
+              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                {event.level === 'great' && (
+                  <Text style={{ fontSize: 18, color: '#FFD700', marginRight: 6 }}>✝</Text>
+                )}
+                <Text style={{
+                  fontSize: event.level === 'great' ? 15 : 13,
+                  fontWeight: event.level === 'great' ? 'bold' : 'normal',
+                  color: event.level === 'great' ? '#800020' : '#333',
+                  flex: 1
+                }}>
+                  {event.name}
                 </Text>
               </View>
-            )}
-            {feast.daysFromNow > 0 && (
-              <Text style={styles.daysFromNow}>
-                {feast.isTomorrow ? 'Mâine' : `În ${feast.daysFromNow} zile`}
+            ))
+          ) : (
+            <Text style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
+              {format(feast.date, 'EEEE', { locale: ro })}
+            </Text>
+          )}
+          
+          {feast.fasting !== 'none' && (
+            <View style={{
+              backgroundColor: '#F3E8FF',
+              paddingHorizontal: 8,
+              paddingVertical: 3,
+              borderRadius: 4,
+              alignSelf: 'flex-start',
+              marginTop: 6
+            }}>
+              <Text style={{ fontSize: 11, color: '#800020', fontWeight: '600' }}>
+                {getFastingLabel(feast.fasting)}
               </Text>
-            )}
-          </View>
+            </View>
+          )}
+          
+          {julianCalendarEnabled && (
+            <Text style={{ fontSize: 10, color: '#999', marginTop: 4 }}>
+              Julian: {formatJulianDate(feast.date)}
+            </Text>
+          )}
         </View>
-
-        {feast.events.length > 0 && (
-          <View style={styles.eventsSection}>
-            {feast.events.map((event, idx) => {
-              const isGreat = event.level === 'great';
-              const isMajor = event.level === 'major';
-              
-              return (
-                <View key={`event-${idx}`} style={styles.eventItem}>
-                  <View style={styles.eventItemHeader}>
-                    <Text style={styles.eventName}>{event.name}</Text>
-                    {isGreat && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>Mare Sărbătoare</Text>
-                      </View>
-                    )}
-                    {isMajor && !isGreat && (
-                      <View style={[styles.badge, styles.badgeMajor]}>
-                        <Text style={styles.badgeText}>Major</Text>
-                      </View>
-                    )}
-                  </View>
-                  {event.nameEn && (
-                    <Text style={styles.eventNameEn}>{event.nameEn}</Text>
-                  )}
-                  {event.liturgyRequired && (
-                    <View style={styles.detailRow}>
-                      <Ionicons name="business" size={14} color={Colors.orthodox.royalBlue} />
-                      <Text style={[styles.detailText, { color: Colors.orthodox.royalBlue, fontSize: 12 }]}>
-                        Liturghie Obligatorie
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        {feast.fasting && feast.fasting !== 'none' && (
-          <View style={styles.detailRow}>
-            <Ionicons name="leaf" size={16} color={Colors.orthodox.burgundy} />
-            <Text style={[styles.detailText, { color: Colors.orthodox.burgundy }]}>
-              Post: {feast.fasting}
-            </Text>
-          </View>
-        )}
-        
-        {feast.isSunday && (
-          <View style={styles.detailRow}>
-            <Ionicons name="sunny" size={16} color={Colors.orthodox.gold} />
-            <Text style={[styles.detailText, { color: Colors.orthodox.gold }]}>
-              Duminică
-            </Text>
-          </View>
-        )}
       </View>
     );
   };
@@ -323,6 +438,7 @@ export default function OrthodoxScreen() {
   return (
     <View style={styles.container}>
       <ScrollView>
+        <LiturgicalHeader tone={todayData?.tone} />
         {renderTodayCard()}
         
         <Text style={styles.mainSectionTitle}>Sărbători Viitoare</Text>

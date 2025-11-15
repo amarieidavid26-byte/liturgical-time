@@ -1,0 +1,103 @@
+"Transform the Orthodox tab into a traditional Orthodox calendar design:
+
+1. CREATE A LITURGICAL HEADER with current period:
+
+const LiturgicalHeader = () => {
+  const today = new Date();
+  const currentPeriod = getCurrentLiturgicalPeriod(today);
+  const currentTone = getCurrentTone(today);
+  
+  return (
+    <LinearGradient 
+      colors={['#800020', '#4A0012']} 
+      style={{
+        padding: 20,
+        alignItems: 'center',
+        marginBottom: 10
+      }}
+    >
+      <Text style={{ color: '#FFD700', fontSize: 18, fontWeight: 'bold' }}>
+        {currentPeriod}
+      </Text>
+      <Text style={{ color: '#FFF', fontSize: 14 }}>
+        Glasul {currentTone}
+      </Text>
+    </LinearGradient>
+  );
+};
+
+2. REDESIGN FEAST CARDS to look like traditional calendar pages:
+
+const FeastDayCard = ({ day }) => (
+  <View style={{
+    backgroundColor: '#FFF',
+    marginHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    flexDirection: 'row',
+    overflow: 'hidden'
+  }}>
+    {/* Date block on left */}
+    <View style={{
+      width: 80,
+      backgroundColor: day.isSunday ? '#FFD700' : '#800020',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 10
+    }}>
+      <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#FFF' }}>
+        {format(day.date, 'd', { locale: ro })}
+      </Text>
+      <Text style={{ fontSize: 11, color: '#FFF', textTransform: 'uppercase' }}>
+        {format(day.date, 'MMM', { locale: ro })}
+      </Text>
+      {day.isSunday && (
+        <Text style={{ fontSize: 10, color: '#FFD700', marginTop: 4, fontWeight: 'bold' }}>
+          DUMINICĂ
+        </Text>
+      )}
+    </View>
+    
+    {/* Content on right */}
+    <View style={{ flex: 1, padding: 12 }}>
+      {/* Show feast with cross symbol for great feasts */}
+      {day.events.map((event, idx) => (
+        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+          {event.level === 'great' && (
+            <Text style={{ fontSize: 18, color: '#FFD700', marginRight: 6 }}>✝</Text>
+          )}
+          <Text style={{
+            fontSize: event.level === 'great' ? 15 : 13,
+            fontWeight: event.level === 'great' ? 'bold' : 'normal',
+            color: event.level === 'great' ? '#800020' : '#333'
+          }}>
+            {event.name}
+          </Text>
+        </View>
+      ))}
+      
+      {/* Fasting indicator */}
+      {day.fasting !== 'none' && (
+        <View style={{
+          backgroundColor: '#F3E8FF',
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+          borderRadius: 4,
+          alignSelf: 'flex-start',
+          marginTop: 6
+        }}>
+          <Text style={{ fontSize: 11, color: '#800020', fontWeight: '600' }}>
+            {day.fasting === 'strict' ? 'Post Aspru' : 
+             day.fasting === 'lent' ? 'Post Mare' : 'Post'}
+          </Text>
+        </View>
+      )}
+    </View>
+  </View>
+);
+
+3. UPDATE the rendering to use new card style"
