@@ -158,6 +158,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### November 15, 2025 - Design System & UI Enhancement
+
+**Modern Color Palette:**
+- **Added:** Gradient color arrays for primary Orthodox colors (gold, royal blue, burgundy)
+- **Added:** Semantic color system with modern backgrounds (primaryBg, cardBg, modalBg)
+- **Added:** Consistent accent colors (success, warning, danger, info) using Tailwind CSS palette
+- **Added:** Text color hierarchy (primaryText, secondaryText, mutedText)
+- **Added:** Special Orthodox-themed background colors (sundayGold, fastingPurple, feastBlue)
+- **Added:** Shadow definitions (small, medium, large) with consistent elevation
+- **Maintained:** Backward compatibility with legacy color names
+- **Structure:** `constants/Colors.ts` now exports gradients, backgrounds, accents, text, special colors, and shadow presets
+
 ### November 13, 2025 - Major Features Update
 
 **Orthodox Calendar API Integration:**
