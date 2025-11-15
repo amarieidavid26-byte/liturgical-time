@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,12 +18,13 @@ import { deleteMeeting, getAllMeetings } from '../../lib/database/sqlite';
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
 import { useTranslation } from '../../lib/hooks/useTranslation';
-import { deleteMeetingFromCalendar, syncMeetingToCalendar } from '../../lib/calendar/calendarSyncService';
+import { deleteMeetingFromCalendar, syncMeetingToCalendar, deleteExternalCalendarEvent, smartImportMeetings, syncExternalChanges } from '../../lib/calendar/calendarSyncService';
 
 export default function MeetingsScreen() {
   const { meetings, setMeetings, parishSettings, calendarSyncEnabled, calendarId } = useAppStore();
   const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
   const [pastMeetings, setPastMeetings] = useState<Meeting[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const t = useTranslation();
   const swipeableRefs = useRef<Map<number, Swipeable>>(new Map());
 
@@ -33,6 +35,27 @@ export default function MeetingsScreen() {
     setUpcomingMeetings(upcoming);
     setPastMeetings(past);
   }, [meetings]);
+
+  const handleRefresh = async () => {
+    if (!calendarSyncEnabled) {
+      return;
+    }
+
+    setRefreshing(true);
+    try {
+      const result = await smartImportMeetings();
+      const syncResult = await syncExternalChanges();
+      
+      if (result.imported > 0 || syncResult.updated > 0 || syncResult.deleted > 0) {
+        const updated = await getAllMeetings();
+        setMeetings(updated);
+      }
+    } catch (error) {
+      console.error('Refresh sync error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleExportMeeting = async (meeting: Meeting) => {
     try {
@@ -68,6 +91,9 @@ export default function MeetingsScreen() {
           onPress: async () => {
             try {
               if (meeting.id) {
+                if (meeting.externalEventId) {
+                  await deleteExternalCalendarEvent(meeting);
+                }
                 if (calendarSyncEnabled) {
                   await deleteMeetingFromCalendar(meeting);
                 }
@@ -153,6 +179,12 @@ export default function MeetingsScreen() {
               </View>
             )}
           </View>
+          {item.calendarSource && (
+            <View style={styles.syncBadge}>
+              <Ionicons name="cloud-done" size={12} color={Colors.orthodox.success} />
+              <Text style={styles.syncText}>From {item.calendarSource}</Text>
+            </View>
+          )}
           {conflict && (
             <View style={styles.conflictBanner}>
               <Ionicons name="warning" size={16} color={Colors.orthodox.red} />
@@ -198,6 +230,14 @@ export default function MeetingsScreen() {
             ) : null
           }
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[Colors.orthodox.royalBlue]}
+              tintColor={Colors.orthodox.royalBlue}
+            />
+          }
         />
         <TouchableOpacity
           style={styles.fab}
@@ -327,5 +367,20 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 12,
     marginBottom: 12,
+  },
+  syncBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    padding: 6,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  syncText: {
+    fontSize: 11,
+    color: Colors.orthodox.success,
+    fontWeight: '600',
   },
 });

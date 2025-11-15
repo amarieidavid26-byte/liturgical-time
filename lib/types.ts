@@ -7,6 +7,9 @@ export interface Meeting {
   location?: string;
   notes?: string;
   calendarEventId?: string;
+  externalEventId?: string;
+  calendarSource?: string;
+  lastSynced?: string;
   createdAt?: string;
   updatedAt?: string;
 }

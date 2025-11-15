@@ -48,6 +48,39 @@ export const initDatabase = async (): Promise<void> => {
       }
     }
     
+    try {
+      await db.execAsync(`
+        ALTER TABLE meetings ADD COLUMN externalEventId TEXT;
+      `);
+      console.log('Added externalEventId column to existing meetings table');
+    } catch (alterError: any) {
+      if (!alterError.message?.includes('duplicate column name')) {
+        console.log('externalEventId column already exists');
+      }
+    }
+    
+    try {
+      await db.execAsync(`
+        ALTER TABLE meetings ADD COLUMN calendarSource TEXT;
+      `);
+      console.log('Added calendarSource column to existing meetings table');
+    } catch (alterError: any) {
+      if (!alterError.message?.includes('duplicate column name')) {
+        console.log('calendarSource column already exists');
+      }
+    }
+    
+    try {
+      await db.execAsync(`
+        ALTER TABLE meetings ADD COLUMN lastSynced TEXT;
+      `);
+      console.log('Added lastSynced column to existing meetings table');
+    } catch (alterError: any) {
+      if (!alterError.message?.includes('duplicate column name')) {
+        console.log('lastSynced column already exists');
+      }
+    }
+    
     isInitialized = true;
     console.log('Database initialized successfully');
   } catch (error) {
@@ -105,8 +138,8 @@ export const createMeeting = async (meeting: Meeting): Promise<number> => {
   
   try {
     const result = await db.runAsync(
-      `INSERT INTO meetings (title, date, startTime, endTime, location, notes, calendarEventId, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      `INSERT INTO meetings (title, date, startTime, endTime, location, notes, calendarEventId, externalEventId, calendarSource, lastSynced, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
       [
         meeting.title,
         meeting.date,
@@ -115,6 +148,9 @@ export const createMeeting = async (meeting: Meeting): Promise<number> => {
         meeting.location || null,
         meeting.notes || null,
         meeting.calendarEventId || null,
+        meeting.externalEventId || null,
+        meeting.calendarSource || null,
+        meeting.lastSynced || null,
       ]
     );
     return result.lastInsertRowId;
@@ -131,7 +167,7 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
   try {
     await db.runAsync(
       `UPDATE meetings 
-       SET title = ?, date = ?, startTime = ?, endTime = ?, location = ?, notes = ?, calendarEventId = ?, updatedAt = datetime('now')
+       SET title = ?, date = ?, startTime = ?, endTime = ?, location = ?, notes = ?, calendarEventId = ?, externalEventId = ?, calendarSource = ?, lastSynced = ?, updatedAt = datetime('now')
        WHERE id = ?`,
       [
         meeting.title,
@@ -141,6 +177,9 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
         meeting.location || null,
         meeting.notes || null,
         meeting.calendarEventId || null,
+        meeting.externalEventId || null,
+        meeting.calendarSource || null,
+        meeting.lastSynced || null,
         meeting.id,
       ]
     );

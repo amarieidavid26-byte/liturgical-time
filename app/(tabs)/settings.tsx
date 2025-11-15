@@ -22,7 +22,10 @@ import { useTranslation } from '../../lib/hooks/useTranslation';
 import {
   requestCalendarPermissions,
   getOrCreateCalendar,
+  smartImportMeetings,
+  syncExternalChanges,
 } from '../../lib/calendar/calendarSyncService';
+import { getAllMeetings } from '../../lib/database/sqlite';
 
 export default function SettingsScreen() {
   const { 
@@ -50,6 +53,7 @@ export default function SettingsScreen() {
   );
   const [showSundayPicker, setShowSundayPicker] = useState(false);
   const [isEnablingSync, setIsEnablingSync] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const formatTime = (date: Date) => {
     const hours = date.getHours().toString().padStart(2, '0');
@@ -124,6 +128,28 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await smartImportMeetings();
+      const syncResult = await syncExternalChanges();
+      
+      const { setMeetings } = useAppStore.getState();
+      const meetings = await getAllMeetings();
+      setMeetings(meetings);
+      
+      Alert.alert(
+        'Sync Complete',
+        `Imported: ${result.imported} new meetings\nUpdated: ${syncResult.updated} meetings\nDeleted: ${syncResult.deleted} meetings\nSkipped: ${result.skipped} duplicates`
+      );
+    } catch (error) {
+      console.error('Manual sync error:', error);
+      Alert.alert('Sync Error', 'Failed to sync calendar. Please try again.');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleToggleCalendarSync = async (enabled: boolean) => {
@@ -296,6 +322,24 @@ export default function SettingsScreen() {
             />
           )}
         </View>
+
+        {calendarSyncEnabled && calendarPermissionStatus === 'granted' && (
+          <TouchableOpacity 
+            style={[styles.syncButton, isSyncing && styles.syncButtonDisabled]}
+            onPress={handleManualSync}
+            disabled={isSyncing}
+          >
+            <Ionicons 
+              name={isSyncing ? "sync" : "cloud-download"} 
+              size={24} 
+              color={isSyncing ? Colors.orthodox.darkGray : Colors.orthodox.royalBlue} 
+            />
+            <Text style={[styles.syncButtonText, isSyncing && styles.syncButtonTextDisabled]}>
+              {isSyncing ? 'Syncing...' : 'Sync Now'}
+            </Text>
+            {isSyncing && <ActivityIndicator size="small" color={Colors.orthodox.royalBlue} />}
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -463,5 +507,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.orthodox.success,
     fontWeight: '600',
+  },
+  syncButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.orthodox.lightBlue,
+    marginTop: 12,
+  },
+  syncButtonDisabled: {
+    opacity: 0.6,
+  },
+  syncButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.orthodox.royalBlue,
+  },
+  syncButtonTextDisabled: {
+    color: Colors.orthodox.darkGray,
   },
 });

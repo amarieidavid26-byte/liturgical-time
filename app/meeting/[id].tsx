@@ -20,7 +20,7 @@ import useAppStore from '../../lib/store/appStore';
 import { getMeetingById, updateMeeting, getAllMeetings } from '../../lib/database/sqlite';
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
-import { syncMeetingToCalendar } from '../../lib/calendar/calendarSyncService';
+import { syncMeetingToCalendar, updateExternalCalendarEvent } from '../../lib/calendar/calendarSyncService';
 
 export default function EditMeetingScreen() {
   const { id } = useLocalSearchParams();
@@ -124,7 +124,12 @@ export default function EditMeetingScreen() {
         endTime: formatTime(endTime),
         location: location.trim() || undefined,
         notes: notes.trim() || undefined,
+        lastSynced: new Date().toISOString(),
       };
+
+      if (meeting.externalEventId) {
+        await updateExternalCalendarEvent(updatedMeeting);
+      }
 
       if (calendarSyncEnabled && calendarId) {
         const calendarEventId = await syncMeetingToCalendar(updatedMeeting, calendarId);

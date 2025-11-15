@@ -5,11 +5,12 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AppState } from 'react-native';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { initDatabase, getAllMeetings, getParishSettingsDb } from '../lib/database/sqlite';
 import { getParishSettings, getOnboardingCompleted, getCalendarSyncEnabled, getCalendarId } from '../lib/utils/storage';
-import { checkCalendarPermissions } from '../lib/calendar/calendarSyncService';
+import { checkCalendarPermissions, smartImportMeetings, syncExternalChanges } from '../lib/calendar/calendarSyncService';
 import useAppStore from '../lib/store/appStore';
 
 export default function RootLayout() {
@@ -67,6 +68,32 @@ export default function RootLayout() {
     }
 
     initialize();
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'active') {
+        const syncEnabled = await getCalendarSyncEnabled();
+        if (syncEnabled) {
+          console.log('App active - checking for calendar changes...');
+          
+          try {
+            const result = await smartImportMeetings();
+            const syncResult = await syncExternalChanges();
+            
+            if (result.imported > 0 || syncResult.updated > 0 || syncResult.deleted > 0) {
+              const meetings = await getAllMeetings();
+              setMeetings(meetings);
+              console.log(`Sync complete: ${result.imported} imported, ${syncResult.updated} updated, ${syncResult.deleted} deleted`);
+            }
+          } catch (error) {
+            console.error('Auto-sync error:', error);
+          }
+        }
+      }
+    });
+    
+    return () => subscription.remove();
   }, []);
 
   if (!loaded) {
