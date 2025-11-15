@@ -28,6 +28,7 @@ Preferred communication style: Simple, everyday language.
 - **Live Orthodox Data API:** Integrates with `orthocal.info` for daily liturgical data (saints, readings, fasting, feasts, tone), implementing 24-hour caching with AsyncStorage and graceful degradation to local data.
 - **Conflict Detection Engine:** Compares meeting times against parish liturgy schedules, Great Feasts, Major Feasts, and Sundays, calculating liturgy duration and returning conflict severity.
 - **Meeting Management:** CRUD operations for meetings with automatic conflict checking and visual indicators.
+- **Calendar Sync:** Native device calendar integration with automatic sync (opt-in), manual export button per meeting, dedicated "Timpul Liturgic" calendar, and persistent settings across app restarts.
 
 ### Platform Support
 - **Multi-Platform Rendering:** Supports iOS (SF Symbols), Android (Material Icons), and web (responsive layouts).
@@ -48,5 +49,5 @@ Preferred communication style: Simple, everyday language.
 - **State Management:** `zustand`.
 - **UI & Calendar:** `react-native-calendars`, `@react-native-community/datetimepicker`, `react-native-reanimated`, `react-native-gesture-handler`, `@gorhom/bottom-sheet`, `expo-linear-gradient`.
 - **Utilities:** `date-fns`, `@expo/vector-icons`.
-- **Expo Modules:** `expo-font`, `expo-haptics`, `expo-blur`, `expo-splash-screen`, `expo-constants`, `expo-symbols`.
+- **Expo Modules:** `expo-font`, `expo-haptics`, `expo-blur`, `expo-splash-screen`, `expo-constants`, `expo-symbols`, `expo-calendar`.
 - **Data Sources:** `constants/data/orthodoxCalendar.json` (static data), `orthocal.info API` (live data).

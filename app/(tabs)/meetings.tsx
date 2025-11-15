@@ -17,10 +17,10 @@ import { deleteMeeting, getAllMeetings } from '../../lib/database/sqlite';
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
 import { useTranslation } from '../../lib/hooks/useTranslation';
-import { deleteMeetingFromCalendar } from '../../lib/calendar/calendarSyncService';
+import { deleteMeetingFromCalendar, syncMeetingToCalendar } from '../../lib/calendar/calendarSyncService';
 
 export default function MeetingsScreen() {
-  const { meetings, setMeetings, parishSettings, calendarSyncEnabled } = useAppStore();
+  const { meetings, setMeetings, parishSettings, calendarSyncEnabled, calendarId } = useAppStore();
   const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
   const [pastMeetings, setPastMeetings] = useState<Meeting[]>([]);
   const t = useTranslation();
@@ -33,6 +33,20 @@ export default function MeetingsScreen() {
     setUpcomingMeetings(upcoming);
     setPastMeetings(past);
   }, [meetings]);
+
+  const handleExportMeeting = async (meeting: Meeting) => {
+    try {
+      const eventId = await syncMeetingToCalendar(meeting, calendarId);
+      if (eventId) {
+        Alert.alert(t.success || 'Success', t.meetingExported || 'Meeting added to calendar');
+      } else {
+        Alert.alert(t.error || 'Error', t.exportFailed || 'Failed to export meeting. Please check calendar permissions.');
+      }
+    } catch (error) {
+      console.error('Error exporting meeting:', error);
+      Alert.alert(t.error || 'Error', t.exportFailed || 'Failed to export meeting');
+    }
+  };
 
   const handleDeleteMeeting = (meeting: Meeting) => {
     Alert.alert(
@@ -102,11 +116,22 @@ export default function MeetingsScreen() {
         >
           <View style={styles.meetingHeader}>
             <Text style={styles.meetingTitle}>{item.title}</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={Colors.orthodox.darkGray}
-            />
+            <View style={styles.headerActions}>
+              <TouchableOpacity 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleExportMeeting(item);
+                }}
+                style={styles.exportButton}
+              >
+                <Ionicons name="calendar-outline" size={20} color={Colors.orthodox.royalBlue} />
+              </TouchableOpacity>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={Colors.orthodox.darkGray}
+              />
+            </View>
           </View>
           <View style={styles.meetingDetails}>
             <View style={styles.detailRow}>
@@ -224,6 +249,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.orthodox.darkGray,
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  exportButton: {
+    padding: 4,
   },
   meetingDetails: {
     gap: 8,
