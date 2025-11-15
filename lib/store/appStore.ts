@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Meeting, ParishSettings, ViewMode } from '../types';
+import { CalendarPermissionStatus } from '../calendar/calendarSyncService';
 
 interface AppStore {
   parishSettings: ParishSettings | null;
@@ -10,6 +11,9 @@ interface AppStore {
   isOnboarded: boolean;
   isLoading: boolean;
   language: 'en' | 'ro';
+  calendarSyncEnabled: boolean;
+  calendarId: string | null;
+  calendarPermissionStatus: CalendarPermissionStatus;
   
   setParishSettings: (settings: ParishSettings | null) => void;
   setMeetings: (meetings: Meeting[]) => void;
@@ -22,6 +26,9 @@ interface AppStore {
   setOnboarded: (onboarded: boolean) => void;
   setIsLoading: (loading: boolean) => void;
   setLanguage: (lang: 'en' | 'ro') => void;
+  setCalendarSyncEnabled: (enabled: boolean) => void;
+  setCalendarId: (id: string | null) => void;
+  setCalendarPermissionStatus: (status: CalendarPermissionStatus) => void;
   reset: () => void;
 }
 
@@ -34,6 +41,9 @@ const useAppStore = create<AppStore>((set) => ({
   isOnboarded: false,
   isLoading: true,
   language: 'ro',
+  calendarSyncEnabled: false,
+  calendarId: null,
+  calendarPermissionStatus: 'undetermined',
   
   setParishSettings: (settings) => set({ parishSettings: settings }),
   
@@ -65,6 +75,12 @@ const useAppStore = create<AppStore>((set) => ({
   
   setLanguage: (lang) => set({ language: lang }),
   
+  setCalendarSyncEnabled: (enabled) => set({ calendarSyncEnabled: enabled }),
+  
+  setCalendarId: (id) => set({ calendarId: id }),
+  
+  setCalendarPermissionStatus: (status) => set({ calendarPermissionStatus: status }),
+  
   reset: () => set({
     parishSettings: null,
     meetings: [],
@@ -74,6 +90,9 @@ const useAppStore = create<AppStore>((set) => ({
     isOnboarded: false,
     isLoading: false,
     language: 'ro',
+    calendarSyncEnabled: false,
+    calendarId: null,
+    calendarPermissionStatus: 'undetermined',
   }),
 }));
 

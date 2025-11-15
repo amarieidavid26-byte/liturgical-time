@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -18,9 +19,27 @@ import useAppStore from '../../lib/store/appStore';
 import { saveParishSettings, clearAllData } from '../../lib/utils/storage';
 import { deleteAllMeetings, saveParishSettingsDb, deleteParishSettingsDb } from '../../lib/database/sqlite';
 import { useTranslation } from '../../lib/hooks/useTranslation';
+import {
+  requestCalendarPermissions,
+  getOrCreateCalendar,
+} from '../../lib/calendar/calendarSyncService';
 
 export default function SettingsScreen() {
-  const { parishSettings, setParishSettings, julianCalendarEnabled, toggleJulianCalendar, language, setLanguage, reset } = useAppStore();
+  const { 
+    parishSettings, 
+    setParishSettings, 
+    julianCalendarEnabled, 
+    toggleJulianCalendar, 
+    language, 
+    setLanguage, 
+    reset,
+    calendarSyncEnabled,
+    calendarId,
+    calendarPermissionStatus,
+    setCalendarSyncEnabled,
+    setCalendarId,
+    setCalendarPermissionStatus,
+  } = useAppStore();
   const t = useTranslation();
   
   const [parishName, setParishName] = useState(parishSettings?.parishName || '');
@@ -30,6 +49,7 @@ export default function SettingsScreen() {
       : new Date(2024, 0, 1, 9, 0)
   );
   const [showSundayPicker, setShowSundayPicker] = useState(false);
+  const [isEnablingSync, setIsEnablingSync] = useState(false);
 
   const formatTime = (date: Date) => {
     const hours = date.getHours().toString().padStart(2, '0');
@@ -104,6 +124,49 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleToggleCalendarSync = async (enabled: boolean) => {
+    if (enabled) {
+      setIsEnablingSync(true);
+      try {
+        const permissionStatus = await requestCalendarPermissions();
+        setCalendarPermissionStatus(permissionStatus);
+
+        if (permissionStatus === 'granted') {
+          const newCalendarId = await getOrCreateCalendar();
+          if (newCalendarId) {
+            setCalendarId(newCalendarId);
+            setCalendarSyncEnabled(true);
+            Alert.alert(
+              'Calendar Sync Enabled',
+              'Your meetings will now be synchronized with your device calendar under "Timpul Liturgic".'
+            );
+          } else {
+            Alert.alert('Error', 'Failed to create calendar. Please try again.');
+            setCalendarSyncEnabled(false);
+          }
+        } else {
+          Alert.alert(
+            'Permission Denied',
+            'Calendar access is required to sync meetings. Please enable calendar permissions in your device settings.'
+          );
+          setCalendarSyncEnabled(false);
+        }
+      } catch (error) {
+        console.error('Error enabling calendar sync:', error);
+        Alert.alert('Error', 'Failed to enable calendar sync');
+        setCalendarSyncEnabled(false);
+      } finally {
+        setIsEnablingSync(false);
+      }
+    } else {
+      setCalendarSyncEnabled(false);
+      Alert.alert(
+        'Calendar Sync Disabled',
+        'New meetings will no longer be synced to your device calendar. Existing calendar events will remain.'
+      );
+    }
   };
 
   return (
@@ -189,6 +252,43 @@ export default function SettingsScreen() {
               🇬🇧 {t.english}
             </Text>
           </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Calendar Sync</Text>
+        
+        <View style={styles.settingRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.label}>Sync with Device Calendar</Text>
+            <Text style={styles.sublabel}>
+              Automatically sync meetings to your device calendar
+            </Text>
+            {calendarSyncEnabled && calendarPermissionStatus === 'granted' && (
+              <View style={styles.syncStatusBadge}>
+                <Ionicons name="checkmark-circle" size={14} color={Colors.orthodox.success} />
+                <Text style={styles.syncStatusText}>Syncing to "Timpul Liturgic"</Text>
+              </View>
+            )}
+            {calendarPermissionStatus === 'denied' && (
+              <View style={[styles.syncStatusBadge, { backgroundColor: '#FFEBEE' }]}>
+                <Ionicons name="alert-circle" size={14} color={Colors.orthodox.danger} />
+                <Text style={[styles.syncStatusText, { color: Colors.orthodox.danger }]}>
+                  Permission denied
+                </Text>
+              </View>
+            )}
+          </View>
+          {isEnablingSync ? (
+            <ActivityIndicator size="small" color={Colors.orthodox.royalBlue} />
+          ) : (
+            <Switch
+              value={calendarSyncEnabled}
+              onValueChange={handleToggleCalendarSync}
+              trackColor={{ false: Colors.orthodox.lightGray, true: Colors.orthodox.royalBlue }}
+              disabled={isEnablingSync}
+            />
+          )}
         </View>
       </View>
 
@@ -341,5 +441,21 @@ const styles = StyleSheet.create({
   },
   languageButtonTextActive: {
     color: Colors.orthodox.royalBlue,
+  },
+  syncStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  syncStatusText: {
+    fontSize: 12,
+    color: Colors.orthodox.success,
+    fontWeight: '600',
   },
 });
