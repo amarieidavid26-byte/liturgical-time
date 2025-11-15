@@ -20,16 +20,97 @@ import { Card } from '../../components/ui/Card';
 
 type FilterType = 'all' | 'great' | 'major';
 
+interface GroupedFeast {
+  date: Date;
+  dateStr: string;
+  events: OrthodoxEvent[];
+  fasting: 'none' | 'regular' | 'strict' | 'lent';
+  daysFromNow: number;
+  isToday: boolean;
+  isTomorrow: boolean;
+  isSunday: boolean;
+}
+
+interface GroupedFeasts {
+  today: GroupedFeast[];
+  thisWeek: GroupedFeast[];
+  thisMonth: GroupedFeast[];
+  nextMonth: GroupedFeast[];
+  later: GroupedFeast[];
+}
+
 export default function OrthodoxScreen() {
   const { julianCalendarEnabled } = useAppStore();
   const [filter, setFilter] = useState<FilterType>('all');
   const [todayData, setTodayData] = useState<OrthodoxAPIResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [upcomingFeasts, setUpcomingFeasts] = useState<GroupedFeasts>({
+    today: [],
+    thisWeek: [],
+    thisMonth: [],
+    nextMonth: [],
+    later: []
+  });
 
   useEffect(() => {
     loadTodayData();
+    generateUpcomingFeasts();
   }, []);
+
+  useEffect(() => {
+    generateUpcomingFeasts();
+  }, [filter, julianCalendarEnabled]);
+
+  const generateUpcomingFeasts = () => {
+    const today = new Date();
+    const feasts: GroupedFeast[] = [];
+    
+    // Get feasts for the next 90 days from TODAY
+    for (let i = 0; i < 90; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() + i);
+      
+      const dateStr = format(checkDate, 'yyyy-MM-dd');
+      
+      // Get Orthodox events for this specific date
+      const events = getOrthodoxEventsForDate(checkDate);
+      const fasting = isFastingDay(checkDate);
+      
+      // Apply filter
+      let filteredEvents = events;
+      if (filter === 'great') {
+        filteredEvents = events.filter(e => e.level === 'great');
+      } else if (filter === 'major') {
+        filteredEvents = events.filter(e => e.level === 'great' || e.level === 'major');
+      }
+      
+      // Only add if there are events or it's a significant fasting day
+      if (filteredEvents.length > 0 || (fasting !== 'none' && i < 30)) {
+        feasts.push({
+          date: checkDate,
+          dateStr: dateStr,
+          events: filteredEvents,
+          fasting: fasting,
+          daysFromNow: i,
+          isToday: i === 0,
+          isTomorrow: i === 1,
+          isSunday: checkDate.getDay() === 0
+        });
+      }
+    }
+    
+    // Group feasts by time period
+    const grouped: GroupedFeasts = {
+      today: feasts.filter(f => f.isToday),
+      thisWeek: feasts.filter(f => f.daysFromNow > 0 && f.daysFromNow <= 7),
+      thisMonth: feasts.filter(f => f.daysFromNow > 7 && f.daysFromNow <= 30),
+      nextMonth: feasts.filter(f => f.daysFromNow > 30 && f.daysFromNow <= 60),
+      later: feasts.filter(f => f.daysFromNow > 60)
+    };
+    
+    setUpcomingFeasts(grouped);
+  };
 
   const loadTodayData = async () => {
     try {
