@@ -170,6 +170,16 @@ Preferred communication style: Simple, everyday language.
 - **Maintained:** Backward compatibility with legacy color names
 - **Structure:** `constants/Colors.ts` now exports gradients, backgrounds, accents, text, special colors, and shadow presets
 
+**UI Component Library:**
+- **Created:** `components/ui/Card.tsx` - Reusable card component with TypeScript support
+- **Features:** 
+  - Standard card with optional onPress handler
+  - Gradient card with LinearGradient support (requires 2+ colors)
+  - Built-in shadow presets (medium shadow by default)
+  - Consistent 16px border radius and padding
+- **Dependencies:** Installed `expo-linear-gradient` for gradient support
+- **Export:** Centralized exports via `components/ui/index.ts`
+
 ### November 13, 2025 - Major Features Update
 
 **Orthodox Calendar API Integration:**
