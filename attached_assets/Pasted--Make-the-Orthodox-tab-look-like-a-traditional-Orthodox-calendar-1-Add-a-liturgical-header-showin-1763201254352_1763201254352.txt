@@ -1,0 +1,115 @@
+"Make the Orthodox tab look like a traditional Orthodox calendar:
+
+1. Add a liturgical header showing current period:
+
+const LiturgicalHeader = () => {
+  const today = new Date();
+  const currentPeriod = getCurrentLiturgicalPeriod(today);
+  
+  return (
+    <LinearGradient colors={['#800020', '#4A0012']} style={styles.liturgicalHeader}>
+      <Text style={styles.periodText}>{currentPeriod}</Text>
+      <Text style={styles.toneText}>Glasul {getCurrentTone(today)}</Text>
+    </LinearGradient>
+  );
+};
+
+2. Create feast cards that look like traditional calendar pages:
+
+const FeastCard = ({ feast }) => (
+  <View style={styles.calendarPage}>
+    <View style={styles.dateBlock}>
+      <Text style={styles.dayNumber}>{format(feast.date, 'd')}</Text>
+      <Text style={styles.monthName}>{format(feast.date, 'MMMM')}</Text>
+      {feast.isSunday && <Text style={styles.sunday}>DUMINICĂ</Text>}
+    </View>
+    
+    <View style={styles.feastContent}>
+      {feast.events.map(event => (
+        <View key={event.name}>
+          {event.level === 'great' && <Text style={styles.cross}>✝</Text>}
+          <Text style={[
+            styles.feastName,
+            event.level === 'great' && styles.greatFeastName
+          ]}>
+            {event.name}
+          </Text>
+        </View>
+      ))}
+      
+      {feast.fasting !== 'none' && (
+        <View style={styles.fastingBadge}>
+          <Text style={styles.fastingText}>
+            {feast.fasting === 'strict' ? 'Post Aspru' : 
+             feast.fasting === 'lent' ? 'Postul Mare' : 'Post'}
+          </Text>
+        </View>
+      )}
+    </View>
+  </View>
+);
+
+3. Add traditional Orthodox calendar styling:
+
+const styles = StyleSheet.create({
+  calendarPage: {
+    backgroundColor: '#FFF',
+    margin: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    flexDirection: 'row',
+    overflow: 'hidden'
+  },
+  dateBlock: {
+    width: 80,
+    backgroundColor: '#800020',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10
+  },
+  dayNumber: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFF'
+  },
+  monthName: {
+    fontSize: 12,
+    color: '#FFF',
+    textTransform: 'uppercase'
+  },
+  sunday: {
+    fontSize: 10,
+    color: '#FFD700',
+    marginTop: 4,
+    fontWeight: 'bold'
+  },
+  feastContent: {
+    flex: 1,
+    padding: 15
+  },
+  cross: {
+    fontSize: 20,
+    color: '#FFD700',
+    marginRight: 8
+  },
+  greatFeastName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#800020'
+  },
+  feastName: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4
+  },
+  fastingBadge: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 8
+  }
+});"

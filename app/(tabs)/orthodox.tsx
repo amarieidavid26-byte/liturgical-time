@@ -137,95 +137,97 @@ export default function OrthodoxScreen() {
     }
   };
 
-  const allEvents = useMemo(() => getAllOrthodoxEvents(), []);
-
-  const filteredEvents = useMemo(() => {
-    if (filter === 'all') return allEvents;
-    if (filter === 'great') return allEvents.filter((e) => e.level === 'great');
-    if (filter === 'major') return allEvents.filter((e) => e.level === 'major' || e.level === 'great');
-    return allEvents;
-  }, [allEvents, filter]);
-
-  const thisWeekEvents = useMemo(() => {
-    const now = new Date();
-    const weekEnd = addDays(now, 7);
-    return filteredEvents.filter((event) => {
-      const eventDate = parseISO(event.date);
-      return isWithinInterval(eventDate, { start: now, end: weekEnd });
-    });
-  }, [filteredEvents]);
-
-  const nextMonthEvents = useMemo(() => {
-    const weekEnd = addDays(new Date(), 7);
-    const monthEnd = addDays(new Date(), 30);
-    return filteredEvents.filter((event) => {
-      const eventDate = parseISO(event.date);
-      return isWithinInterval(eventDate, { start: weekEnd, end: monthEnd });
-    });
-  }, [filteredEvents]);
-
-  const renderEvent = ({ item }: { item: OrthodoxEvent }) => {
-    const eventDate = parseISO(item.date);
-    const isGreat = item.level === 'great';
-    const isMajor = item.level === 'major';
-
+  const renderFeastCard = (feast: GroupedFeast, index: number) => {
+    const hasGreatFeast = feast.events.some(e => e.level === 'great');
+    const hasMajorFeast = feast.events.some(e => e.level === 'major');
+    
     return (
-      <View
+      <View 
+        key={`feast-${feast.dateStr}-${index}`}
         style={[
           styles.eventCard,
-          isGreat && styles.eventCardGreat,
-          isMajor && styles.eventCardMajor,
+          hasGreatFeast && styles.eventCardGreat,
         ]}
       >
         <View style={styles.eventHeader}>
           <View style={styles.eventTitleContainer}>
-            <Text style={styles.eventName}>{item.name}</Text>
-            {item.nameEn && <Text style={styles.eventNameEn}>{item.nameEn}</Text>}
+            <View style={styles.detailRow}>
+              <Ionicons name="calendar" size={16} color={Colors.orthodox.darkGray} />
+              <Text style={styles.detailText}>
+                {format(feast.date, 'EEEE, MMMM d, yyyy')}
+              </Text>
+            </View>
+            {julianCalendarEnabled && (
+              <View style={styles.detailRow}>
+                <Ionicons name="calendar-outline" size={16} color={Colors.orthodox.darkGray} />
+                <Text style={styles.detailText}>
+                  Julian: {formatJulianDate(feast.date)}
+                </Text>
+              </View>
+            )}
+            {feast.daysFromNow > 0 && (
+              <Text style={styles.daysFromNow}>
+                {feast.isTomorrow ? 'Mâine' : `În ${feast.daysFromNow} zile`}
+              </Text>
+            )}
           </View>
-          {isGreat && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Great Feast</Text>
-            </View>
-          )}
-          {isMajor && !isGreat && (
-            <View style={[styles.badge, styles.badgeMajor]}>
-              <Text style={styles.badgeText}>Major</Text>
-            </View>
-          )}
         </View>
 
-        <View style={styles.eventDetails}>
+        {feast.events.length > 0 && (
+          <View style={styles.eventsSection}>
+            {feast.events.map((event, idx) => {
+              const isGreat = event.level === 'great';
+              const isMajor = event.level === 'major';
+              
+              return (
+                <View key={`event-${idx}`} style={styles.eventItem}>
+                  <View style={styles.eventItemHeader}>
+                    <Text style={styles.eventName}>{event.name}</Text>
+                    {isGreat && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>Mare Sărbătoare</Text>
+                      </View>
+                    )}
+                    {isMajor && !isGreat && (
+                      <View style={[styles.badge, styles.badgeMajor]}>
+                        <Text style={styles.badgeText}>Major</Text>
+                      </View>
+                    )}
+                  </View>
+                  {event.nameEn && (
+                    <Text style={styles.eventNameEn}>{event.nameEn}</Text>
+                  )}
+                  {event.liturgyRequired && (
+                    <View style={styles.detailRow}>
+                      <Ionicons name="business" size={14} color={Colors.orthodox.royalBlue} />
+                      <Text style={[styles.detailText, { color: Colors.orthodox.royalBlue, fontSize: 12 }]}>
+                        Liturghie Obligatorie
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {feast.fasting && feast.fasting !== 'none' && (
           <View style={styles.detailRow}>
-            <Ionicons name="calendar" size={16} color={Colors.orthodox.darkGray} />
-            <Text style={styles.detailText}>
-              {format(eventDate, 'MMMM d, yyyy')}
+            <Ionicons name="leaf" size={16} color={Colors.orthodox.burgundy} />
+            <Text style={[styles.detailText, { color: Colors.orthodox.burgundy }]}>
+              Post: {feast.fasting}
             </Text>
           </View>
-          {julianCalendarEnabled && (
-            <View style={styles.detailRow}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.orthodox.darkGray} />
-              <Text style={styles.detailText}>
-                Julian: {formatJulianDate(eventDate)}
-              </Text>
-            </View>
-          )}
-          {item.liturgyRequired && (
-            <View style={styles.detailRow}>
-              <Ionicons name="business" size={16} color={Colors.orthodox.royalBlue} />
-              <Text style={[styles.detailText, { color: Colors.orthodox.royalBlue }]}>
-                Divine Liturgy Required
-              </Text>
-            </View>
-          )}
-          {item.fasting && item.fasting !== 'none' && (
-            <View style={styles.detailRow}>
-              <Ionicons name="leaf" size={16} color={Colors.orthodox.burgundy} />
-              <Text style={[styles.detailText, { color: Colors.orthodox.burgundy }]}>
-                Fasting: {item.fasting}
-              </Text>
-            </View>
-          )}
-        </View>
+        )}
+        
+        {feast.isSunday && (
+          <View style={styles.detailRow}>
+            <Ionicons name="sunny" size={16} color={Colors.orthodox.gold} />
+            <Text style={[styles.detailText, { color: Colors.orthodox.gold }]}>
+              Duminică
+            </Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -353,28 +355,61 @@ export default function OrthodoxScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={filteredEvents}
-        renderItem={renderEvent}
-        keyExtractor={(item, index) => `${item.date}-${index}`}
-        ListHeaderComponent={
-          <>
-            {thisWeekEvents.length > 0 && (
-              <>
-                <Text style={styles.sectionTitle}>This Week</Text>
-                {thisWeekEvents.map((event, index) => (
-                  <View key={`week-${index}`}>{renderEvent({ item: event })}</View>
-                ))}
-              </>
-            )}
-            {nextMonthEvents.length > 0 && (
-              <Text style={styles.sectionTitle}>Next Month</Text>
-            )}
-          </>
-        }
-        contentContainerStyle={styles.listContent}
-        scrollEnabled={false}
-      />
+      <View style={styles.listContent}>
+        {/* Today's Feasts - Special Gold Gradient Card */}
+        {upcomingFeasts.today.length > 0 && (
+          <View style={styles.groupedSection}>
+            <LinearGradient
+              colors={Colors.gradients.gold}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.todayGradientHeader}
+            >
+              <Ionicons name="star" size={24} color={Colors.orthodox.white} />
+              <Text style={styles.todayGroupTitle}>
+                Astăzi - {format(new Date(), 'EEEE, d MMMM')}
+              </Text>
+            </LinearGradient>
+            {upcomingFeasts.today.map((feast, index) => renderFeastCard(feast, index))}
+          </View>
+        )}
+
+        {/* This Week */}
+        {upcomingFeasts.thisWeek.length > 0 && (
+          <View style={styles.groupedSection}>
+            <Text style={styles.sectionTitle}>Săptămâna Aceasta</Text>
+            {upcomingFeasts.thisWeek.map((feast, index) => renderFeastCard(feast, index))}
+          </View>
+        )}
+
+        {/* This Month */}
+        {upcomingFeasts.thisMonth.length > 0 && (
+          <View style={styles.groupedSection}>
+            <Text style={styles.sectionTitle}>
+              Luna Aceasta - {format(new Date(), 'MMMM yyyy')}
+            </Text>
+            {upcomingFeasts.thisMonth.map((feast, index) => renderFeastCard(feast, index))}
+          </View>
+        )}
+
+        {/* Next Month */}
+        {upcomingFeasts.nextMonth.length > 0 && (
+          <View style={styles.groupedSection}>
+            <Text style={styles.sectionTitle}>
+              Luna Viitoare - {format(addMonths(new Date(), 1), 'MMMM yyyy')}
+            </Text>
+            {upcomingFeasts.nextMonth.map((feast, index) => renderFeastCard(feast, index))}
+          </View>
+        )}
+
+        {/* Later (61-90 days) */}
+        {upcomingFeasts.later.length > 0 && (
+          <View style={styles.groupedSection}>
+            <Text style={styles.sectionTitle}>Mai Târziu</Text>
+            {upcomingFeasts.later.map((feast, index) => renderFeastCard(feast, index))}
+          </View>
+        )}
+      </View>
       </ScrollView>
     </View>
   );
@@ -538,5 +573,42 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 14,
     color: Colors.orthodox.darkGray,
+  },
+  groupedSection: {
+    marginBottom: 24,
+  },
+  todayGradientHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  todayGroupTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.orthodox.white,
+  },
+  daysFromNow: {
+    fontSize: 12,
+    color: Colors.orthodox.royalBlue,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  eventsSection: {
+    marginTop: 8,
+    gap: 12,
+  },
+  eventItem: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  eventItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
 });
