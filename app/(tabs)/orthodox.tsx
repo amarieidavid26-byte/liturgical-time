@@ -1,15 +1,15 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { format, parseISO, isWithinInterval, addDays, addMonths } from 'date-fns';
+import { format, addMonths } from 'date-fns';
+import { ro } from 'date-fns/locale';
 import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
 import { getAllOrthodoxEvents, formatJulianDate, getOrthodoxEventsForDate, isFastingDay } from '../../lib/calendar/orthodoxCalendar';
@@ -64,9 +64,9 @@ export default function OrthodoxScreen() {
 
   const generateUpcomingFeasts = () => {
     const today = new Date();
-    const feasts: GroupedFeast[] = [];
+    const allDays: GroupedFeast[] = [];
     
-    // Get feasts for the next 90 days from TODAY
+    // Build COMPLETE 90-day sequence - every single day
     for (let i = 0; i < 90; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(today.getDate() + i);
@@ -74,39 +74,38 @@ export default function OrthodoxScreen() {
       const dateStr = format(checkDate, 'yyyy-MM-dd');
       
       // Get Orthodox events for this specific date
-      const events = getOrthodoxEventsForDate(checkDate);
+      const allEvents = getOrthodoxEventsForDate(checkDate);
       const fasting = isFastingDay(checkDate);
       
-      // Apply filter
-      let filteredEvents = events;
+      // Apply filter to events (but keep the day regardless)
+      let filteredEvents = allEvents;
       if (filter === 'great') {
-        filteredEvents = events.filter(e => e.level === 'great');
+        filteredEvents = allEvents.filter(e => e.level === 'great');
       } else if (filter === 'major') {
-        filteredEvents = events.filter(e => e.level === 'great' || e.level === 'major');
+        filteredEvents = allEvents.filter(e => e.level === 'great' || e.level === 'major');
       }
       
-      // Only add if there are events or it's a significant fasting day
-      if (filteredEvents.length > 0 || (fasting !== 'none' && i < 30)) {
-        feasts.push({
-          date: checkDate,
-          dateStr: dateStr,
-          events: filteredEvents,
-          fasting: fasting,
-          daysFromNow: i,
-          isToday: i === 0,
-          isTomorrow: i === 1,
-          isSunday: checkDate.getDay() === 0
-        });
-      }
+      // ALWAYS add every day to maintain chronological continuity
+      // Only filter affects the events shown, not whether the day appears
+      allDays.push({
+        date: checkDate,
+        dateStr: dateStr,
+        events: filteredEvents,
+        fasting: fasting,
+        daysFromNow: i,
+        isToday: i === 0,
+        isTomorrow: i === 1,
+        isSunday: checkDate.getDay() === 0
+      });
     }
     
-    // Group feasts by time period
+    // Group days by time period
     const grouped: GroupedFeasts = {
-      today: feasts.filter(f => f.isToday),
-      thisWeek: feasts.filter(f => f.daysFromNow > 0 && f.daysFromNow <= 7),
-      thisMonth: feasts.filter(f => f.daysFromNow > 7 && f.daysFromNow <= 30),
-      nextMonth: feasts.filter(f => f.daysFromNow > 30 && f.daysFromNow <= 60),
-      later: feasts.filter(f => f.daysFromNow > 60)
+      today: allDays.filter(f => f.isToday),
+      thisWeek: allDays.filter(f => f.daysFromNow > 0 && f.daysFromNow <= 7),
+      thisMonth: allDays.filter(f => f.daysFromNow > 7 && f.daysFromNow <= 30),
+      nextMonth: allDays.filter(f => f.daysFromNow > 30 && f.daysFromNow <= 60),
+      later: allDays.filter(f => f.daysFromNow > 60)
     };
     
     setUpcomingFeasts(grouped);
@@ -154,7 +153,7 @@ export default function OrthodoxScreen() {
             <View style={styles.detailRow}>
               <Ionicons name="calendar" size={16} color={Colors.orthodox.darkGray} />
               <Text style={styles.detailText}>
-                {format(feast.date, 'EEEE, MMMM d, yyyy')}
+                {format(feast.date, 'EEEE, d MMMM yyyy', { locale: ro })}
               </Text>
             </View>
             {julianCalendarEnabled && (
@@ -247,8 +246,8 @@ export default function OrthodoxScreen() {
       <View style={styles.todayCard}>
         <View style={styles.todayHeader}>
           <View>
-            <Text style={styles.todayTitle}>Today's Orthodox Calendar</Text>
-            <Text style={styles.todayDate}>{format(new Date(), 'MMMM d, yyyy')}</Text>
+            <Text style={styles.todayTitle}>Calendarul Ortodox de Astăzi</Text>
+            <Text style={styles.todayDate}>{format(new Date(), 'd MMMM yyyy', { locale: ro })}</Text>
           </View>
           <TouchableOpacity onPress={handleRefresh} disabled={refreshing}>
             {refreshing ? (
@@ -263,7 +262,7 @@ export default function OrthodoxScreen() {
           <View style={styles.todaySection}>
             <View style={styles.todaySectionHeader}>
               <Ionicons name="star" size={18} color={Colors.orthodox.gold} />
-              <Text style={styles.todaySectionTitle}>Feast Day</Text>
+              <Text style={styles.todaySectionTitle}>Sărbătoare</Text>
             </View>
             <Text style={styles.todayText}>{todayData.feast}</Text>
           </View>
@@ -273,7 +272,7 @@ export default function OrthodoxScreen() {
           <View style={styles.todaySection}>
             <View style={styles.todaySectionHeader}>
               <Ionicons name="people" size={18} color={Colors.orthodox.royalBlue} />
-              <Text style={styles.todaySectionTitle}>Saints Commemorated</Text>
+              <Text style={styles.todaySectionTitle}>Sfinți Prăznuiți</Text>
             </View>
             <ScrollView style={styles.saintsScroll} nestedScrollEnabled>
               {todayData.saints.map((saint, index) => (
@@ -287,13 +286,13 @@ export default function OrthodoxScreen() {
           <View style={styles.todaySection}>
             <View style={styles.todaySectionHeader}>
               <Ionicons name="book" size={18} color={Colors.orthodox.burgundy} />
-              <Text style={styles.todaySectionTitle}>Daily Readings</Text>
+              <Text style={styles.todaySectionTitle}>Citiri Zilnice</Text>
             </View>
             {todayData.readings.epistle && (
-              <Text style={styles.todayText}>Epistle: {todayData.readings.epistle}</Text>
+              <Text style={styles.todayText}>Apostol: {todayData.readings.epistle}</Text>
             )}
             {todayData.readings.gospel && (
-              <Text style={styles.todayText}>Gospel: {todayData.readings.gospel}</Text>
+              <Text style={styles.todayText}>Evanghelie: {todayData.readings.gospel}</Text>
             )}
           </View>
         )}
@@ -302,7 +301,7 @@ export default function OrthodoxScreen() {
           <View style={styles.todaySection}>
             <View style={styles.todaySectionHeader}>
               <Ionicons name="leaf" size={18} color={Colors.orthodox.burgundy} />
-              <Text style={styles.todaySectionTitle}>Fasting</Text>
+              <Text style={styles.todaySectionTitle}>Post</Text>
             </View>
             <Text style={styles.todayText}>{todayData.fasting}</Text>
           </View>
@@ -312,9 +311,9 @@ export default function OrthodoxScreen() {
           <View style={styles.todaySection}>
             <View style={styles.todaySectionHeader}>
               <Ionicons name="musical-notes" size={18} color={Colors.orthodox.darkGray} />
-              <Text style={styles.todaySectionTitle}>Tone</Text>
+              <Text style={styles.todaySectionTitle}>Glasul</Text>
             </View>
-            <Text style={styles.todayText}>Tone {todayData.tone}</Text>
+            <Text style={styles.todayText}>Glasul {todayData.tone}</Text>
           </View>
         )}
       </View>
@@ -326,7 +325,7 @@ export default function OrthodoxScreen() {
       <ScrollView>
         {renderTodayCard()}
         
-        <Text style={styles.mainSectionTitle}>Upcoming Feasts (2024-2028)</Text>
+        <Text style={styles.mainSectionTitle}>Sărbători Viitoare</Text>
         
         <View style={styles.filterContainer}>
         <TouchableOpacity
@@ -334,7 +333,7 @@ export default function OrthodoxScreen() {
           onPress={() => setFilter('all')}
         >
           <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-            All
+            Toate
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -342,7 +341,7 @@ export default function OrthodoxScreen() {
           onPress={() => setFilter('great')}
         >
           <Text style={[styles.filterText, filter === 'great' && styles.filterTextActive]}>
-            Great Feasts
+            Mari Sărbători
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -350,7 +349,7 @@ export default function OrthodoxScreen() {
           onPress={() => setFilter('major')}
         >
           <Text style={[styles.filterText, filter === 'major' && styles.filterTextActive]}>
-            Major+
+            Majore+
           </Text>
         </TouchableOpacity>
       </View>
@@ -367,7 +366,7 @@ export default function OrthodoxScreen() {
             >
               <Ionicons name="star" size={24} color={Colors.orthodox.white} />
               <Text style={styles.todayGroupTitle}>
-                Astăzi - {format(new Date(), 'EEEE, d MMMM')}
+                Astăzi - {format(new Date(), 'EEEE, d MMMM', { locale: ro })}
               </Text>
             </LinearGradient>
             {upcomingFeasts.today.map((feast, index) => renderFeastCard(feast, index))}
@@ -386,7 +385,7 @@ export default function OrthodoxScreen() {
         {upcomingFeasts.thisMonth.length > 0 && (
           <View style={styles.groupedSection}>
             <Text style={styles.sectionTitle}>
-              Luna Aceasta - {format(new Date(), 'MMMM yyyy')}
+              Luna Aceasta - {format(new Date(), 'MMMM yyyy', { locale: ro })}
             </Text>
             {upcomingFeasts.thisMonth.map((feast, index) => renderFeastCard(feast, index))}
           </View>
@@ -396,7 +395,7 @@ export default function OrthodoxScreen() {
         {upcomingFeasts.nextMonth.length > 0 && (
           <View style={styles.groupedSection}>
             <Text style={styles.sectionTitle}>
-              Luna Viitoare - {format(addMonths(new Date(), 1), 'MMMM yyyy')}
+              Luna Viitoare - {format(addMonths(new Date(), 1), 'MMMM yyyy', { locale: ro })}
             </Text>
             {upcomingFeasts.nextMonth.map((feast, index) => renderFeastCard(feast, index))}
           </View>
