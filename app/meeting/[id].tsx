@@ -20,10 +20,11 @@ import useAppStore from '../../lib/store/appStore';
 import { getMeetingById, updateMeeting, getAllMeetings } from '../../lib/database/sqlite';
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
+import { syncMeetingToCalendar } from '../../lib/calendar/calendarSyncService';
 
 export default function EditMeetingScreen() {
   const { id } = useLocalSearchParams();
-  const { parishSettings, setMeetings } = useAppStore();
+  const { parishSettings, setMeetings, calendarSyncEnabled, calendarId } = useAppStore();
   
   const [loading, setLoading] = useState(true);
   const [meeting, setMeeting] = useState<Meeting | null>(null);
@@ -124,6 +125,13 @@ export default function EditMeetingScreen() {
         location: location.trim() || undefined,
         notes: notes.trim() || undefined,
       };
+
+      if (calendarSyncEnabled && calendarId) {
+        const calendarEventId = await syncMeetingToCalendar(updatedMeeting, calendarId);
+        if (calendarEventId) {
+          updatedMeeting.calendarEventId = calendarEventId;
+        }
+      }
 
       await updateMeeting(updatedMeeting);
       const updated = await getAllMeetings();

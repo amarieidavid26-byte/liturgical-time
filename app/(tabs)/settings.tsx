@@ -16,7 +16,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
-import { saveParishSettings, clearAllData } from '../../lib/utils/storage';
+import { saveParishSettings, clearAllData, setCalendarSyncEnabled as saveCalendarSyncEnabled, setCalendarId as saveCalendarId } from '../../lib/utils/storage';
 import { deleteAllMeetings, saveParishSettingsDb, deleteParishSettingsDb } from '../../lib/database/sqlite';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import {
@@ -138,6 +138,8 @@ export default function SettingsScreen() {
           if (newCalendarId) {
             setCalendarId(newCalendarId);
             setCalendarSyncEnabled(true);
+            await saveCalendarId(newCalendarId);
+            await saveCalendarSyncEnabled(true);
             Alert.alert(
               'Calendar Sync Enabled',
               'Your meetings will now be synchronized with your device calendar under "Timpul Liturgic".'
@@ -145,6 +147,7 @@ export default function SettingsScreen() {
           } else {
             Alert.alert('Error', 'Failed to create calendar. Please try again.');
             setCalendarSyncEnabled(false);
+            await saveCalendarSyncEnabled(false);
           }
         } else {
           Alert.alert(
@@ -152,16 +155,19 @@ export default function SettingsScreen() {
             'Calendar access is required to sync meetings. Please enable calendar permissions in your device settings.'
           );
           setCalendarSyncEnabled(false);
+          await saveCalendarSyncEnabled(false);
         }
       } catch (error) {
         console.error('Error enabling calendar sync:', error);
         Alert.alert('Error', 'Failed to enable calendar sync');
         setCalendarSyncEnabled(false);
+        await saveCalendarSyncEnabled(false);
       } finally {
         setIsEnablingSync(false);
       }
     } else {
       setCalendarSyncEnabled(false);
+      await saveCalendarSyncEnabled(false);
       Alert.alert(
         'Calendar Sync Disabled',
         'New meetings will no longer be synced to your device calendar. Existing calendar events will remain.'

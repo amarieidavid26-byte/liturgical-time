@@ -17,9 +17,10 @@ import { deleteMeeting, getAllMeetings } from '../../lib/database/sqlite';
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
 import { useTranslation } from '../../lib/hooks/useTranslation';
+import { deleteMeetingFromCalendar } from '../../lib/calendar/calendarSyncService';
 
 export default function MeetingsScreen() {
-  const { meetings, setMeetings, parishSettings } = useAppStore();
+  const { meetings, setMeetings, parishSettings, calendarSyncEnabled } = useAppStore();
   const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
   const [pastMeetings, setPastMeetings] = useState<Meeting[]>([]);
   const t = useTranslation();
@@ -53,6 +54,9 @@ export default function MeetingsScreen() {
           onPress: async () => {
             try {
               if (meeting.id) {
+                if (calendarSyncEnabled) {
+                  await deleteMeetingFromCalendar(meeting);
+                }
                 await deleteMeeting(meeting.id);
                 const updated = await getAllMeetings();
                 setMeetings(updated);

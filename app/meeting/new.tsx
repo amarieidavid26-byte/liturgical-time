@@ -16,12 +16,13 @@ import { format } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
-import { createMeeting, getAllMeetings } from '../../lib/database/sqlite';
+import { createMeeting, getAllMeetings, updateMeeting } from '../../lib/database/sqlite';
 import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
+import { syncMeetingToCalendar } from '../../lib/calendar/calendarSyncService';
 
 export default function NewMeetingScreen() {
-  const { selectedDate, parishSettings, setMeetings } = useAppStore();
+  const { selectedDate, parishSettings, setMeetings, calendarSyncEnabled, calendarId } = useAppStore();
   
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(selectedDate ? new Date(selectedDate) : new Date());
@@ -90,7 +91,17 @@ export default function NewMeetingScreen() {
         notes: notes.trim() || undefined,
       };
 
-      await createMeeting(meeting);
+      const meetingId = await createMeeting(meeting);
+      
+      if (calendarSyncEnabled && calendarId) {
+        const calendarEventId = await syncMeetingToCalendar(meeting, calendarId);
+        if (calendarEventId) {
+          meeting.id = meetingId;
+          meeting.calendarEventId = calendarEventId;
+          await updateMeeting(meeting);
+        }
+      }
+      
       const updated = await getAllMeetings();
       setMeetings(updated);
       router.back();

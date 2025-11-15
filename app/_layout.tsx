@@ -8,7 +8,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { initDatabase, getAllMeetings, getParishSettingsDb } from '../lib/database/sqlite';
-import { getParishSettings, getOnboardingCompleted } from '../lib/utils/storage';
+import { getParishSettings, getOnboardingCompleted, getCalendarSyncEnabled, getCalendarId } from '../lib/utils/storage';
+import { checkCalendarPermissions } from '../lib/calendar/calendarSyncService';
 import useAppStore from '../lib/store/appStore';
 
 export default function RootLayout() {
@@ -23,6 +24,9 @@ export default function RootLayout() {
     setOnboarded,
     setIsLoading,
     isOnboarded,
+    setCalendarSyncEnabled,
+    setCalendarId,
+    setCalendarPermissionStatus,
   } = useAppStore();
 
   useEffect(() => {
@@ -41,6 +45,16 @@ export default function RootLayout() {
         
         const onboarded = await getOnboardingCompleted();
         setOnboarded(onboarded);
+        
+        const calendarSyncEnabled = await getCalendarSyncEnabled();
+        const calendarId = await getCalendarId();
+        setCalendarSyncEnabled(calendarSyncEnabled);
+        setCalendarId(calendarId);
+        
+        if (calendarSyncEnabled) {
+          const permissionStatus = await checkCalendarPermissions();
+          setCalendarPermissionStatus(permissionStatus);
+        }
         
         if (!onboarded) {
           setTimeout(() => router.replace('/onboarding' as any), 100);
