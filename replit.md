@@ -251,3 +251,24 @@ Preferred communication style: Simple, everyday language.
   - Date formats: "EEEE, d MMMM yyyy" and "d MMMM yyyy"
 - **Continuous Calendar View:** Every day in 90-day window displays regardless of events, fasting status, or filter selection
 - **Implementation:** `generateUpcomingFeasts()` function in `app/(tabs)/orthodox.tsx` builds complete day sequence, applies filters to events only
+
+**Traditional Orthodox Calendar Design (November 15, 2025):**
+- **Liturgical Header:** Burgundy gradient header displaying current liturgical period and tone
+  - `getCurrentLiturgicalPeriod()` helper function with accurate date-based calculations
+  - Easter-relative periods: Postul Mare, Săptămâna Patimilor, Paștele, Săptămâna Luminată, Perioada Paștilor, Înălțarea Domnului, După Înălțare, Rusaliile, Duminica Tuturor Sfinților, Postul Sfinților Apostoli
+  - Fixed-date periods: Postul Crăciunului, Perioada de Crăciun, După Botez, Postul Adormirii Maicii Domnului, Adormirea Maicii Domnului, Înălțarea Sfintei Cruci
+  - Easter dates table extended through 2030
+- **Traditional Calendar Cards:** Calendar page-style design with horizontal layout
+  - Left date block (80px wide): Gold background for Sundays, burgundy for weekdays
+  - Large day number (32px bold) with abbreviated month name
+  - "DUMINICĂ" label badge on Sunday dates
+  - Right content area with feast names and details
+  - Cross symbols (✝) displayed before great feast names in gold color
+  - Feast names styled by importance: great feasts bold 15px burgundy, others normal 13px
+  - Empty days show weekday name in italic gray
+- **Fasting Indicators:** Purple-tinted badges with Romanian labels
+  - "Post Aspru" for strict fasting
+  - "Post Mare" for Great Lent fasting
+  - "Post" for regular fasting
+- **Julian Calendar Support:** Julian dates shown below main content when enabled
+- **Design Philosophy:** Traditional Orthodox calendar aesthetic with liturgical accuracy
