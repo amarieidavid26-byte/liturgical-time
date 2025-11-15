@@ -1,0 +1,102 @@
+"Fix the Orthodox feast display to show chronologically from today forward.
+
+In app/(tabs)/orthodox.tsx, update the feast filtering logic:
+
+export default function OrthodoxScreen() {
+  const [upcomingFeasts, setUpcomingFeasts] = useState([]);
+
+  useEffect(() => {
+    generateUpcomingFeasts();
+  }, [filterLevel, julianCalendarEnabled]);
+
+  const generateUpcomingFeasts = () => {
+    const today = new Date();
+    const feasts = [];
+    
+    // Get feasts for the next 90 days from TODAY
+    for (let i = 0; i < 90; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() + i);
+      
+      const dateStr = format(checkDate, 'yyyy-MM-dd');
+      const monthDay = format(checkDate, 'MM-dd');
+      
+      // Get Orthodox events for this specific date
+      const events = getOrthodoxEventsForDate(checkDate);
+      const fasting = isFastingDay(checkDate);
+      
+      // Apply filter
+      let filteredEvents = events;
+      if (filterLevel === 'great') {
+        filteredEvents = events.filter(e => e.level === 'great');
+      } else if (filterLevel === 'major') {
+        filteredEvents = events.filter(e => e.level === 'great' || e.level === 'major');
+      }
+      
+      // Only add if there are events or it's a significant fasting day
+      if (filteredEvents.length > 0 || (fasting !== 'none' && i < 30)) {
+        feasts.push({
+          date: checkDate,
+          dateStr: dateStr,
+          events: filteredEvents,
+          fasting: fasting,
+          daysFromNow: i,
+          isToday: i === 0,
+          isTomorrow: i === 1,
+          isSunday: checkDate.getDay() === 0
+        });
+      }
+    }
+    
+    // Group feasts by time period
+    const grouped = {
+      today: feasts.filter(f => f.isToday),
+      thisWeek: feasts.filter(f => f.daysFromNow > 0 && f.daysFromNow <= 7),
+      thisMonth: feasts.filter(f => f.daysFromNow > 7 && f.daysFromNow <= 30),
+      nextMonth: feasts.filter(f => f.daysFromNow > 30 && f.daysFromNow <= 60),
+      later: feasts.filter(f => f.daysFromNow > 60)
+    };
+    
+    setUpcomingFeasts(grouped);
+  };
+  
+  return (
+    <ScrollView>
+      {/* Today's Events - Special Card */}
+      {upcomingFeasts.today?.length > 0 && (
+        <Card gradient colors={['#FFD700', '#FFA500']}>
+          <Text style={styles.sectionTitle}>Astăzi - {format(new Date(), 'EEEE, d MMMM')}</Text>
+          {renderFeasts(upcomingFeasts.today)}
+        </Card>
+      )}
+      
+      {/* This Week */}
+      {upcomingFeasts.thisWeek?.length > 0 && (
+        <View>
+          <Text style={styles.sectionTitle}>Săptămâna Aceasta</Text>
+          {renderFeasts(upcomingFeasts.thisWeek)}
+        </View>
+      )}
+      
+      {/* This Month */}
+      {upcomingFeasts.thisMonth?.length > 0 && (
+        <View>
+          <Text style={styles.sectionTitle}>
+            Luna Aceasta - {format(new Date(), 'MMMM yyyy')}
+          </Text>
+          {renderFeasts(upcomingFeasts.thisMonth)}
+        </View>
+      )}
+      
+      {/* Next Month */}
+      {upcomingFeasts.nextMonth?.length > 0 && (
+        <View>
+          <Text style={styles.sectionTitle}>
+            Luna Viitoare - {format(addMonths(new Date(), 1), 'MMMM yyyy')}
+          </Text>
+          {renderFeasts(upcomingFeasts.nextMonth)}
+        </View>
+      )}
+    </ScrollView>
+  );
+}"
