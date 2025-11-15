@@ -170,11 +170,57 @@ export default function OrthodoxScreen() {
       }
     };
     
+    const getFeastSymbol = (eventName: string, level: string): string => {
+      const name = eventName.toLowerCase();
+      
+      if (name.includes('adormirea') || name.includes('dormition')) {
+        return '🌸';
+      }
+      if (name.includes('rusalii') || name.includes('cincizecime') || name.includes('sfântului duh')) {
+        return '🕊️';
+      }
+      if (name.includes('maicii domnului') || name.includes('născătoare')) {
+        return '👑';
+      }
+      if (name.includes('crăciun') || name.includes('naștere')) {
+        return '🌟';
+      }
+      if (level === 'great') {
+        return '✝';
+      }
+      return '';
+    };
+    
+    const getFeastRank = (level: string): string => {
+      switch (level) {
+        case 'great': return '🔴🔴🔴🔴🔴';
+        case 'major': return '🔴🔴🔴🔴';
+        case 'minor': return '🔴🔴🔴';
+        default: return '🔴';
+      }
+    };
+    
+    const getBorderColor = (): string => {
+      const hasGreatFeast = feast.events.some(e => e.level === 'great');
+      const hasMajorFeast = feast.events.some(e => e.level === 'major');
+      
+      if (hasGreatFeast) return '#FFD700';
+      if (hasMajorFeast) return '#4169E1';
+      if (feast.fasting !== 'none') return '#9370DB';
+      return 'transparent';
+    };
+    
+    const getBorderWidth = (): number => {
+      const hasGreatFeast = feast.events.some(e => e.level === 'great');
+      const hasMajorFeast = feast.events.some(e => e.level === 'major');
+      return (hasGreatFeast || hasMajorFeast || feast.fasting !== 'none') ? 3 : 0;
+    };
+    
     return (
       <View 
         key={`feast-${feast.dateStr}-${index}`}
         style={{
-          backgroundColor: '#FFF',
+          backgroundColor: feast.fasting !== 'none' ? '#FAF5FF' : '#FFF',
           marginHorizontal: 12,
           marginVertical: 6,
           borderRadius: 12,
@@ -183,7 +229,9 @@ export default function OrthodoxScreen() {
           shadowRadius: 4,
           elevation: 3,
           flexDirection: 'row',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          borderWidth: getBorderWidth(),
+          borderColor: getBorderColor()
         }}
       >
         <View style={{
@@ -209,17 +257,24 @@ export default function OrthodoxScreen() {
         <View style={{ flex: 1, padding: 12 }}>
           {feast.events.length > 0 ? (
             feast.events.map((event, idx) => (
-              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                {event.level === 'great' && (
-                  <Text style={{ fontSize: 18, color: '#FFD700', marginRight: 6 }}>✝</Text>
-                )}
-                <Text style={{
-                  fontSize: event.level === 'great' ? 15 : 13,
-                  fontWeight: event.level === 'great' ? 'bold' : 'normal',
-                  color: event.level === 'great' ? '#800020' : '#333',
-                  flex: 1
-                }}>
-                  {event.name}
+              <View key={idx} style={{ marginBottom: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                  {getFeastSymbol(event.name, event.level) && (
+                    <Text style={{ fontSize: 16, marginRight: 6 }}>
+                      {getFeastSymbol(event.name, event.level)}
+                    </Text>
+                  )}
+                  <Text style={{
+                    fontSize: event.level === 'great' ? 15 : 13,
+                    fontWeight: event.level === 'great' ? 'bold' : 'normal',
+                    color: event.level === 'great' ? '#800020' : '#333',
+                    flex: 1
+                  }}>
+                    {event.name}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 9, marginLeft: 22 }}>
+                  {getFeastRank(event.level)}
                 </Text>
               </View>
             ))
@@ -231,14 +286,14 @@ export default function OrthodoxScreen() {
           
           {feast.fasting !== 'none' && (
             <View style={{
-              backgroundColor: '#F3E8FF',
+              backgroundColor: '#9370DB',
               paddingHorizontal: 8,
               paddingVertical: 3,
               borderRadius: 4,
               alignSelf: 'flex-start',
               marginTop: 6
             }}>
-              <Text style={{ fontSize: 11, color: '#800020', fontWeight: '600' }}>
+              <Text style={{ fontSize: 11, color: '#FFF', fontWeight: '600' }}>
                 {getFastingLabel(feast.fasting)}
               </Text>
             </View>
