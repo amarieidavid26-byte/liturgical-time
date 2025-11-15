@@ -1,4 +1,11 @@
 export default {
+  gradients: {
+    gold: ['#FFD700', '#FFA500'],
+    royalBlue: ['#4169E1', '#1E3A8A'],
+    burgundy: ['#800020', '#4A0012'],
+    emerald: ['#10B981', '#059669'],
+  },
+  
   orthodox: {
     // Primary colors with gradients
     goldGradient: ['#FFD700', '#FFA500'],
