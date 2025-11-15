@@ -86,7 +86,17 @@ export const fetchOrthodoxData = async (
   }
 
   try {
-    const response = await fetch(`${ORTHOCAL_API}/daily?date=${date}&jurisdiction=${jurisdiction}`, {
+    const dateObj = new Date(date);
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    
+    const url = `${ORTHOCAL_API}/daily/${year}/${month}/${day}/`;
+    
+    console.log('Fetching from Orthodox Calendar API:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
       headers: {
         'Accept': 'application/json',
       },
@@ -99,7 +109,7 @@ export const fetchOrthodoxData = async (
     const apiData = await response.json();
     
     const data: OrthodoxAPIResponse = {
-      saints: apiData.saints || [],
+      saints: apiData.saints || apiData.commemorations || [],
       readings: {
         epistle: apiData.readings?.epistle || apiData.epistle,
         gospel: apiData.readings?.gospel || apiData.gospel,
@@ -113,7 +123,7 @@ export const fetchOrthodoxData = async (
     await setCachedData(date, jurisdiction, data);
     return data;
   } catch (error) {
-    console.warn('Failed to fetch from Orthodox Calendar API, using local data:', error);
+    console.log('API Error, using fallback:', error instanceof Error ? error.message : String(error));
     const fallbackData = getLocalOrthodoxData(date);
     await setCachedData(date, jurisdiction, fallbackData);
     return fallbackData;

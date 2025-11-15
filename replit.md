@@ -191,6 +191,7 @@ Preferred communication style: Simple, everyday language.
 **Orthodox Calendar API Integration:**
 - **Added:** Live Orthodox calendar data integration via orthocal.info API
 - **Created:** `lib/api/orthodoxAPI.ts` with caching and offline fallback support
+- **Fixed:** API endpoint format to use correct URL path structure (`/daily/{year}/{month}/{day}/`)
 - **Updated:** Orthodox Events tab now displays fresh daily data including:
   - Saints commemorated today
   - Daily scripture readings (Epistle & Gospel)
