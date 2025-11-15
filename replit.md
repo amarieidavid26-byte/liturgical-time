@@ -179,6 +179,12 @@ Preferred communication style: Simple, everyday language.
   - Consistent 16px border radius and padding
 - **Dependencies:** Installed `expo-linear-gradient` for gradient support
 - **Export:** Centralized exports via `components/ui/index.ts`
+- **Documentation:** Complete usage guide in `components/ui/README.md`
+
+**Bottom Sheet Integration:**
+- **Installed:** `@gorhom/bottom-sheet` for modern bottom sheet UI
+- **Features:** Three snap points (25%, 50%, 90%), swipe to dismiss, smooth animations
+- **Usage:** Calendar day details now display in bottom sheet instead of modal
 
 ### November 13, 2025 - Major Features Update
 
@@ -204,12 +210,19 @@ Preferred communication style: Simple, everyday language.
 - **Coverage:** Tab labels, meetings screen, settings screen fully translated
 - **Default:** Romanian language for Romanian Orthodox users
 
-**Calendar Improvements:**
-- **Updated:** Calendar now starts with Monday (European/Orthodox format)
-- **Feature:** Sunday appears at the end of the week (right side)
-- **Feature:** Custom day component displays Julian dates under each Gregorian date when Julian calendar is enabled
-- **Design:** Small burgundy text shows Julian month abbreviation below each day number
-- **UX:** Event dots still appear below dates for visual consistency
+**Calendar Screen Redesign (November 15, 2025):**
+- **Modern Header:** Beautiful gradient header using royal blue gradient colors
+- **Parish Display:** Shows parish name prominently with "Calendar Ortodox" subtitle
+- **Circular Day Selection:** Days now have circular selection instead of square with smooth animations
+- **Touch Animations:** Added spring animations on day press for better feedback
+- **Better Dot Indicators:** Improved visual design with larger, more visible dots (5px circular)
+- **Bottom Sheet:** Replaced modal with modern bottom sheet for day details (@gorhom/bottom-sheet)
+- **Gradient FAB:** Floating action button now uses gradient (emerald green)
+- **Enhanced Cards:** Event and meeting cards have modern design with left border indicators
+- **Icon Integration:** Added contextual icons (calendar, briefcase, time, location, warning, church)
+- **Improved Empty State:** Better empty state with icon when no events/meetings
+- **Shadow System:** Consistent shadows throughout using Colors.shadows presets
+- **Julian Calendar:** Updated Monday-first format, Sunday highlighting, Julian dates display below Gregorian dates
 
 **Meeting Management:**
 - **Feature:** Swipe-to-delete gesture for meetings using react-native-gesture-handler

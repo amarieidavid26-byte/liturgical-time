@@ -1,17 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Modal,
-  Alert,
+  Pressable,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parseISO, subDays } from 'date-fns';
+import { LinearGradient } from 'expo-linear-gradient';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import Animated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import Colors from '../../constants/Colors';
 import useAppStore from '../../lib/store/appStore';
 import { getMeetingsByDate } from '../../lib/database/sqlite';
@@ -22,6 +29,7 @@ import { Meeting, OrthodoxEvent } from '../../lib/types';
 const CustomDay = ({ date, state, marking, onPress }: any) => {
   const julianEnabled = useAppStore(state => state.julianCalendarEnabled);
   const gregorianDate = parseISO(date.dateString);
+  const scale = useSharedValue(1);
   
   let julianMonth = '';
   let julianDay = '';
@@ -35,67 +43,99 @@ const CustomDay = ({ date, state, marking, onPress }: any) => {
   const isSelected = marking?.selected;
   const selectedColor = marking?.selectedColor || Colors.orthodox.royalBlue;
   
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.9);
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1);
+  };
+
+  const handlePress = () => {
+    scale.value = withSpring(0.95, {}, () => {
+      scale.value = withSpring(1);
+    });
+    onPress(date);
+  };
+  
   return (
-    <TouchableOpacity 
-      onPress={() => onPress(date)} 
-      style={{ 
-        alignItems: 'center', 
-        padding: 4,
-        backgroundColor: isSelected ? selectedColor : 'transparent',
-        borderRadius: 16,
-        width: 32,
-        height: julianEnabled ? 42 : 32,
-        justifyContent: 'center',
-      }}
+    <Pressable 
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={handlePress}
     >
-      <View style={{ alignItems: 'center' }}>
-        <Text style={{
-          color: state === 'disabled' ? '#d9d9d9' : isSelected ? Colors.orthodox.white : state === 'today' ? Colors.orthodox.royalBlue : '#2d4150',
-          fontWeight: state === 'today' || isSelected ? 'bold' : 'normal',
-          fontSize: 16,
-        }}>
-          {date.day}
-        </Text>
-        {julianEnabled && (
-          <Text style={{ 
-            fontSize: 9, 
-            color: isSelected ? Colors.orthodox.white : Colors.orthodox.burgundy, 
-            marginTop: 1,
-            opacity: isSelected ? 0.9 : 1,
-            textAlign: 'center',
-            lineHeight: 10,
-          }}>
-            {julianMonth} {julianDay}
-          </Text>
-        )}
-        {marking?.dots && marking.dots.length > 0 && (
-          <View style={{ flexDirection: 'row', marginTop: 2 }}>
-            {marking.dots.map((dot: any, index: number) => (
-              <View
-                key={index}
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: dot.color,
-                  marginHorizontal: 1
-                }}
-              />
-            ))}
+      <Animated.View style={[animatedStyle]}>
+        <View
+          style={{ 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            width: 40,
+            height: julianEnabled ? 50 : 40,
+          }}
+        >
+          <View 
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: isSelected ? selectedColor : 'transparent',
+              justifyContent: 'center',
+              alignItems: 'center',
+              ...Colors.shadows.small,
+            }}
+          >
+            <Text style={{
+              color: state === 'disabled' ? '#d9d9d9' : isSelected ? Colors.orthodox.white : state === 'today' ? Colors.orthodox.royalBlue : Colors.orthodox.primaryText,
+              fontWeight: state === 'today' || isSelected ? 'bold' : 'normal',
+              fontSize: 16,
+            }}>
+              {date.day}
+            </Text>
           </View>
-        )}
-      </View>
-    </TouchableOpacity>
+          {julianEnabled && (
+            <Text style={{ 
+              fontSize: 8, 
+              color: isSelected ? Colors.orthodox.royalBlue : Colors.orthodox.burgundy, 
+              marginTop: 2,
+              textAlign: 'center',
+              lineHeight: 9,
+            }}>
+              {julianMonth} {julianDay}
+            </Text>
+          )}
+          {marking?.dots && marking.dots.length > 0 && (
+            <View style={{ flexDirection: 'row', marginTop: 2, gap: 2 }}>
+              {marking.dots.slice(0, 3).map((dot: any, index: number) => (
+                <View
+                  key={index}
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: 2.5,
+                    backgroundColor: dot.color,
+                  }}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </Animated.View>
+    </Pressable>
   );
 };
 
 export default function CalendarScreen() {
   const { parishSettings, meetings, julianCalendarEnabled, selectedDate, setSelectedDate } = useAppStore();
-  const [modalVisible, setModalVisible] = useState(false);
   const [dayMeetings, setDayMeetings] = useState<Meeting[]>([]);
   const [dayEvents, setDayEvents] = useState<OrthodoxEvent[]>([]);
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
 
-  const markedDates = React.useMemo(() => {
+  const markedDates = useMemo(() => {
     const dates: any = {};
     
     meetings.forEach((meeting) => {
@@ -130,37 +170,47 @@ export default function CalendarScreen() {
           dates[dateStr] = {};
         }
         dates[dateStr].selected = true;
-        dates[dateStr].selectedColor = Colors.calendar.sundayBackground;
+        dates[dateStr].selectedColor = '#E3F2FD';
       }
     }
     
     return dates;
   }, [meetings, parishSettings]);
 
-  const handleDayPress = async (day: any) => {
+  const handleDayPress = useCallback(async (day: any) => {
     setSelectedDate(day.dateString);
     const meetings = await getMeetingsByDate(day.dateString);
     const events = getOrthodoxEventsForDate(parseISO(day.dateString));
     setDayMeetings(meetings);
     setDayEvents(events);
-    setModalVisible(true);
-  };
+    bottomSheetRef.current?.expand();
+  }, [setSelectedDate]);
 
-  const handleAddMeeting = () => {
-    setModalVisible(false);
+  const handleAddMeeting = useCallback(() => {
+    bottomSheetRef.current?.close();
     setTimeout(() => {
       router.push('/meeting/new');
     }, 300);
-  };
+  }, []);
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{parishSettings?.parishName || 'Orthodox Calendar'}</Text>
+      <LinearGradient
+        colors={Colors.orthodox.royalBlueGradient as any}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Text style={styles.headerTitle}>
+          {parishSettings?.parishName || 'Orthodox Calendar'}
+        </Text>
+        <Text style={styles.headerSubtitle}>Calendar Ortodox</Text>
         {julianCalendarEnabled && selectedDate && (
-          <Text style={styles.julianDate}>Julian: {formatJulianDate(parseISO(selectedDate))}</Text>
+          <Text style={styles.julianDate}>
+            Julian: {formatJulianDate(parseISO(selectedDate))}
+          </Text>
         )}
-      </View>
+      </LinearGradient>
 
       <Calendar
         firstDay={1}
@@ -169,92 +219,152 @@ export default function CalendarScreen() {
         onDayPress={handleDayPress}
         dayComponent={CustomDay}
         theme={{
-          todayTextColor: Colors.orthodox.royalBlue,
+          backgroundColor: Colors.orthodox.primaryBg,
+          calendarBackground: Colors.orthodox.primaryBg,
+          textSectionTitleColor: Colors.orthodox.secondaryText,
           selectedDayBackgroundColor: Colors.orthodox.royalBlue,
           selectedDayTextColor: Colors.orthodox.white,
+          todayTextColor: Colors.orthodox.royalBlue,
+          dayTextColor: Colors.orthodox.primaryText,
+          textDisabledColor: Colors.orthodox.mutedText,
           arrowColor: Colors.orthodox.royalBlue,
-          dotColor: Colors.orthodox.royalBlue,
+          monthTextColor: Colors.orthodox.primaryText,
+          textDayFontWeight: '400',
+          textMonthFontWeight: 'bold',
+          textDayHeaderFontWeight: '600',
+          textDayFontSize: 16,
+          textMonthFontSize: 18,
+          textDayHeaderFontSize: 13,
         }}
+        style={styles.calendar}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={handleAddMeeting}>
-        <Ionicons name="add" size={32} color={Colors.orthodox.white} />
+      <TouchableOpacity 
+        style={[styles.fab, Colors.shadows.large]} 
+        onPress={handleAddMeeting}
+        activeOpacity={0.8}
+      >
+        <LinearGradient
+          colors={['#10B981', '#059669'] as any}
+          style={styles.fabGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Ionicons name="add" size={28} color={Colors.orthodox.white} />
+        </LinearGradient>
       </TouchableOpacity>
 
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        backgroundStyle={styles.bottomSheetBackground}
+        handleIndicatorStyle={styles.bottomSheetHandle}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {selectedDate && format(parseISO(selectedDate), 'MMMM d, yyyy')}
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={28} color={Colors.orthodox.darkGray} />
-              </TouchableOpacity>
-            </View>
+        <BottomSheetScrollView contentContainerStyle={styles.bottomSheetContent}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>
+              {selectedDate && format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy')}
+            </Text>
+          </View>
 
-            <ScrollView style={styles.modalScroll}>
-              {dayEvents.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Orthodox Events</Text>
-                  {dayEvents.map((event, index) => (
-                    <View key={index} style={styles.eventCard}>
-                      <Text style={styles.eventName}>{event.name}</Text>
-                      {event.nameEn && <Text style={styles.eventNameEn}>{event.nameEn}</Text>}
-                      {event.liturgyRequired && (
-                        <Text style={styles.eventLiturgy}>Divine Liturgy Required</Text>
-                      )}
-                    </View>
-                  ))}
+          {dayEvents.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="calendar" size={20} color={Colors.orthodox.gold} />
+                <Text style={styles.sectionTitle}>Orthodox Events</Text>
+              </View>
+              {dayEvents.map((event, index) => (
+                <View key={index} style={[styles.eventCard, Colors.shadows.small]}>
+                  <View style={styles.eventDot} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.eventName}>{event.name}</Text>
+                    {event.nameEn && <Text style={styles.eventNameEn}>{event.nameEn}</Text>}
+                    {event.liturgyRequired && (
+                      <View style={styles.liturgyBadge}>
+                        <Ionicons name="church" size={12} color={Colors.orthodox.royalBlue} />
+                        <Text style={styles.eventLiturgy}>Divine Liturgy</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              )}
+              ))}
+            </View>
+          )}
 
-              {dayMeetings.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Meetings</Text>
-                  {dayMeetings.map((meeting) => {
-                    const conflict = detectConflicts(meeting, parishSettings);
-                    return (
-                      <View
-                        key={meeting.id}
-                        style={[
-                          styles.meetingCard,
-                          conflict && styles.meetingCardConflict,
-                        ]}
-                      >
-                        <Text style={styles.meetingTitle}>{meeting.title}</Text>
+          {dayMeetings.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="briefcase" size={20} color={Colors.orthodox.green} />
+                <Text style={styles.sectionTitle}>Meetings</Text>
+              </View>
+              {dayMeetings.map((meeting) => {
+                const conflict = detectConflicts(meeting, parishSettings);
+                return (
+                  <View
+                    key={meeting.id}
+                    style={[
+                      styles.meetingCard,
+                      Colors.shadows.small,
+                      conflict && styles.meetingCardConflict,
+                    ]}
+                  >
+                    <View style={[
+                      styles.meetingDot,
+                      conflict && styles.meetingDotConflict
+                    ]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.meetingTitle}>{meeting.title}</Text>
+                      <View style={styles.meetingDetails}>
+                        <Ionicons name="time-outline" size={14} color={Colors.orthodox.secondaryText} />
                         <Text style={styles.meetingTime}>
                           {meeting.startTime} - {meeting.endTime}
                         </Text>
-                        {meeting.location && (
-                          <Text style={styles.meetingLocation}>{meeting.location}</Text>
-                        )}
-                        {conflict && (
-                          <Text style={styles.conflictText}>{conflict.message}</Text>
-                        )}
                       </View>
-                    );
-                  })}
-                </View>
-              )}
+                      {meeting.location && (
+                        <View style={styles.meetingDetails}>
+                          <Ionicons name="location-outline" size={14} color={Colors.orthodox.secondaryText} />
+                          <Text style={styles.meetingLocation}>{meeting.location}</Text>
+                        </View>
+                      )}
+                      {conflict && (
+                        <View style={styles.conflictBadge}>
+                          <Ionicons name="warning" size={14} color={Colors.orthodox.danger} />
+                          <Text style={styles.conflictText}>{conflict.message}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
 
-              {dayEvents.length === 0 && dayMeetings.length === 0 && (
-                <Text style={styles.emptyText}>No events or meetings on this day</Text>
-              )}
-            </ScrollView>
+          {dayEvents.length === 0 && dayMeetings.length === 0 && (
+            <View style={styles.emptyState}>
+              <Ionicons name="calendar-outline" size={48} color={Colors.orthodox.mutedText} />
+              <Text style={styles.emptyText}>No events or meetings on this day</Text>
+            </View>
+          )}
 
-            <TouchableOpacity style={styles.addButton} onPress={handleAddMeeting}>
-              <Ionicons name="add" size={24} color={Colors.orthodox.white} />
+          <TouchableOpacity 
+            style={[styles.addButton, Colors.shadows.medium]} 
+            onPress={handleAddMeeting}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#10B981', '#059669'] as any}
+              style={styles.addButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="add-circle-outline" size={24} color={Colors.orthodox.white} />
               <Text style={styles.addButtonText}>Add Meeting</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+            </LinearGradient>
+          </TouchableOpacity>
+        </BottomSheetScrollView>
+      </BottomSheet>
     </View>
   );
 }
@@ -262,152 +372,214 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.orthodox.primaryBg,
   },
   header: {
-    padding: 16,
-    backgroundColor: Colors.orthodox.royalBlue,
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: Colors.orthodox.white,
     textAlign: 'center',
+    marginBottom: 4,
   },
-  julianDate: {
+  headerSubtitle: {
     fontSize: 14,
     color: Colors.orthodox.white,
     textAlign: 'center',
-    marginTop: 4,
     opacity: 0.9,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  julianDate: {
+    fontSize: 12,
+    color: Colors.orthodox.white,
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  calendar: {
+    marginTop: 16,
+    borderRadius: 16,
+    marginHorizontal: 12,
+    ...Colors.shadows.small,
   },
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.orthodox.green,
+    bottom: 100,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  fabGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
+  bottomSheetBackground: {
     backgroundColor: Colors.orthodox.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
-    paddingBottom: 34,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
+  bottomSheetHandle: {
+    backgroundColor: Colors.orthodox.mutedText,
+    width: 40,
+  },
+  bottomSheetContent: {
+    paddingBottom: 40,
+  },
+  sheetHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.orthodox.lightGray,
+    borderBottomColor: '#F3F4F6',
   },
-  modalTitle: {
+  sheetTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
-  },
-  modalScroll: {
-    paddingHorizontal: 20,
+    color: Colors.orthodox.primaryText,
   },
   section: {
-    marginVertical: 16,
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.orthodox.primaryText,
+  },
   eventCard: {
-    backgroundColor: Colors.calendar.feastBackground,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.orthodox.gold,
+    backgroundColor: Colors.orthodox.feastBlue,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  eventDot: {
+    width: 4,
+    backgroundColor: Colors.orthodox.gold,
+    borderRadius: 2,
   },
   eventName: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
+    marginBottom: 4,
   },
   eventNameEn: {
     fontSize: 14,
-    color: Colors.orthodox.darkGray,
-    opacity: 0.7,
-    marginTop: 4,
+    color: Colors.orthodox.secondaryText,
+  },
+  liturgyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    backgroundColor: Colors.orthodox.white,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   eventLiturgy: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.orthodox.royalBlue,
-    marginTop: 4,
-    fontStyle: 'italic',
+    fontWeight: '600',
   },
   meetingCard: {
-    backgroundColor: Colors.orthodox.lightGray,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.orthodox.green,
+    backgroundColor: Colors.orthodox.white,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    flexDirection: 'row',
+    gap: 12,
   },
   meetingCardConflict: {
-    backgroundColor: Colors.calendar.conflictBackground,
-    borderLeftColor: Colors.orthodox.red,
+    backgroundColor: '#FEF2F2',
+    borderColor: Colors.orthodox.danger,
+  },
+  meetingDot: {
+    width: 4,
+    backgroundColor: Colors.orthodox.success,
+    borderRadius: 2,
+  },
+  meetingDotConflict: {
+    backgroundColor: Colors.orthodox.danger,
   },
   meetingTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
+    marginBottom: 8,
+  },
+  meetingDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
   },
   meetingTime: {
     fontSize: 14,
-    color: Colors.orthodox.darkGray,
-    marginTop: 4,
+    color: Colors.orthodox.secondaryText,
   },
   meetingLocation: {
     fontSize: 14,
-    color: Colors.orthodox.darkGray,
-    marginTop: 2,
-    opacity: 0.7,
+    color: Colors.orthodox.secondaryText,
+  },
+  conflictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    backgroundColor: Colors.orthodox.white,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   conflictText: {
-    fontSize: 12,
-    color: Colors.orthodox.red,
-    marginTop: 4,
+    fontSize: 11,
+    color: Colors.orthodox.danger,
     fontWeight: '600',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.orthodox.darkGray,
-    textAlign: 'center',
-    marginTop: 40,
-    opacity: 0.5,
+    color: Colors.orthodox.mutedText,
+    marginTop: 12,
   },
   addButton: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  addButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.orthodox.green,
-    margin: 20,
     padding: 16,
-    borderRadius: 8,
     gap: 8,
   },
   addButtonText: {
