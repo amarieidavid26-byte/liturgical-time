@@ -254,9 +254,11 @@ Preferred communication style: Simple, everyday language.
 
 **Traditional Orthodox Calendar Design (November 15, 2025):**
 - **Liturgical Header:** Burgundy gradient header displaying current liturgical period and tone
-  - `getCurrentLiturgicalPeriod()` helper function with accurate date-based calculations
-  - Easter-relative periods: Postul Mare, Săptămâna Patimilor, Paștele, Săptămâna Luminată, Perioada Paștilor, Înălțarea Domnului, După Înălțare, Rusaliile, Duminica Tuturor Sfinților, Postul Sfinților Apostoli
-  - Fixed-date periods: Postul Crăciunului, Perioada de Crăciun, După Botez, Postul Adormirii Maicii Domnului, Adormirea Maicii Domnului, Înălțarea Sfintei Cruci
+  - `getCurrentLiturgicalPeriod()` in `lib/calendar/orthodoxCalendar.ts` with accurate date-based calculations
+  - `getCurrentTone()` calculates liturgical tone (1-8) based on weeks since Pascha
+  - All periods include visual emoji indicators (🌟, 🕯️, ⭐, 📿, 🔑, 🌸, 📖)
+  - Paschal periods: Săptămâna Luminată, Perioada Paștilor (with week numbers), Postul Mare (with week numbers), Postul Sfinților Apostoli
+  - Fixed-date periods: Postul Crăciunului, Perioada Crăciunului, Postul Adormirii Maicii Domnului
   - Easter dates table extended through 2030
 - **Traditional Calendar Cards:** Calendar page-style design with horizontal layout
   - Left date block (80px wide): Gold background for Sundays, burgundy for weekdays
