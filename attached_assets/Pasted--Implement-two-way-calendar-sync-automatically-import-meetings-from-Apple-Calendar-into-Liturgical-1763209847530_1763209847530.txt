@@ -1,0 +1,216 @@
+"Implement two-way calendar sync - automatically import meetings from Apple Calendar into Liturgical Time:
+
+1. UPDATE lib/calendar/calendarSyncService.ts with auto-import:
+
+export class CalendarSyncService {
+  // Add these new methods:
+  
+  // Get all Apple Calendar events (excluding our own)
+  static async getExternalCalendarEvents(startDate: Date, endDate: Date): Promise<any[]> {
+    const hasPermission = await this.requestPermissions();
+    if (!hasPermission) return [];
+    
+    const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+    
+    // Get all calendars EXCEPT 'Timpul Liturgic'
+    const externalCalendars = calendars.filter(cal => 
+      cal.title !== 'Timpul Liturgic' && 
+      (cal.source.name === 'iCloud' || 
+       cal.source.name === 'Google' || 
+       cal.source.name === 'Default')
+    );
+    
+    const calendarIds = externalCalendars.map(cal => cal.id);
+    
+    // Get events from external calendars
+    const events = await Calendar.getEventsAsync(calendarIds, startDate, endDate);
+    
+    return events.filter(event => 
+      !event.allDay && // Skip all-day events
+      !event.title.includes('✝️') && // Skip Orthodox feasts
+      !event.title.includes('📿') // Skip religious events
+    );
+  }
+  
+  // Smart import - only new meetings
+  static async smartImportMeetings(): Promise<number> {
+    try {
+      const startDate = new Date();
+      const endDate = addMonths(startDate, 3); // Import next 3 months
+      
+      // Get external events
+      const externalEvents = await this.getExternalCalendarEvents(startDate, endDate);
+      
+      // Get existing meetings to avoid duplicates
+      const existingMeetings = await getAllMeetings();
+      const existingExternalIds = existingMeetings
+        .map(m => m.externalEventId)
+        .filter(id => id);
+      
+      // Filter out already imported events
+      const newEvents = externalEvents.filter(event => 
+        !existingExternalIds.includes(event.id)
+      );
+      
+      // Import new meetings
+      let imported = 0;
+      for (const event of newEvents) {
+        const meeting: Meeting = {
+          title: event.title,
+          date: format(new Date(event.startDate), 'yyyy-MM-dd'),
+          startTime: format(new Date(event.startDate), 'HH:mm'),
+          endTime: format(new Date(event.endDate), 'HH:mm'),
+          location: event.location || '',
+          notes: event.notes || `Importat din ${event.calendar?.title || 'Calendar'}`,
+          externalEventId: event.id, // Store Apple Calendar ID
+          calendarSource: event.calendar?.title || 'Apple Calendar'
+        };
+        
+        await createMeeting(meeting);
+        imported++;
+      }
+      
+      return imported;
+    } catch (error) {
+      console.error('Import error:', error);
+      return 0;
+    }
+  }
+  
+  // Check for updates to existing synced meetings
+  static async syncExternalChanges(): Promise<number> {
+    const meetings = await getAllMeetings();
+    const syncedMeetings = meetings.filter(m => m.externalEventId);
+    
+    let updated = 0;
+    for (const meeting of syncedMeetings) {
+      try {
+        // Get the event from Apple Calendar
+        const event = await Calendar.getEventAsync(meeting.externalEventId);
+        
+        if (!event) {
+          // Event was deleted in Apple Calendar
+          await deleteMeeting(meeting.id);
+          updated++;
+          continue;
+        }
+        
+        // Check if event was modified
+        const newDate = format(new Date(event.startDate), 'yyyy-MM-dd');
+        const newStartTime = format(new Date(event.startDate), 'HH:mm');
+        const newEndTime = format(new Date(event.endDate), 'HH:mm');
+        
+        if (newDate !== meeting.date || 
+            newStartTime !== meeting.startTime || 
+            newEndTime !== meeting.endTime ||
+            event.title !== meeting.title) {
+          
+          // Update meeting with new details
+          await updateMeeting({
+            ...meeting,
+            title: event.title,
+            date: newDate,
+            startTime: newStartTime,
+            endTime: newEndTime,
+            location: event.location || meeting.location
+          });
+          updated++;
+        }
+      } catch (error) {
+        console.log('Could not sync meeting:', meeting.id);
+      }
+    }
+    
+    return updated;
+  }
+}
+
+2. UPDATE lib/types/index.ts to add external tracking:
+
+export interface Meeting {
+  id?: number;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location?: string;
+  notes?: string;
+  calendarEventId?: string; // Our calendar export ID
+  externalEventId?: string; // Apple/Google Calendar ID
+  calendarSource?: string; // Which calendar it came from
+  lastSynced?: string;
+}
+
+3. UPDATE database schema in lib/database/sqlite.ts:
+
+// Add columns to meetings table
+await db.execAsync(`
+  ALTER TABLE meetings ADD COLUMN externalEventId TEXT;
+  ALTER TABLE meetings ADD COLUMN calendarSource TEXT;
+  ALTER TABLE meetings ADD COLUMN lastSynced TEXT;
+`);
+
+4. CREATE auto-sync on app focus in app/_layout.tsx:
+
+import { AppState } from 'react-native';
+
+useEffect(() => {
+  // Auto-sync when app comes to foreground
+  const subscription = AppState.addEventListener('change', async (nextAppState) => {
+    if (nextAppState === 'active' && calendarSyncEnabled) {
+      console.log('App active - checking for calendar changes...');
+      
+      // Import new meetings from Apple Calendar
+      const imported = await CalendarSyncService.smartImportMeetings();
+      if (imported > 0) {
+        const meetings = await getAllMeetings();
+        setMeetings(meetings);
+        console.log(`Imported ${imported} new meetings from calendar`);
+      }
+      
+      // Sync changes to existing meetings
+      const updated = await CalendarSyncService.syncExternalChanges();
+      if (updated > 0) {
+        const meetings = await getAllMeetings();
+        setMeetings(meetings);
+        console.log(`Synced ${updated} meeting changes`);
+      }
+    }
+  });
+  
+  return () => subscription.remove();
+}, [calendarSyncEnabled]);
+
+5. ADD manual sync button in Settings:
+
+<TouchableOpacity 
+  style={styles.syncButton}
+  onPress={async () => {
+    setSyncing(true);
+    const imported = await CalendarSyncService.smartImportMeetings();
+    const updated = await CalendarSyncService.syncExternalChanges();
+    
+    Alert.alert(
+      'Sincronizare Completă',
+      `Importat: ${imported} întâlniri noi\nActualizat: ${updated} întâlniri existente`
+    );
+    
+    const meetings = await getAllMeetings();
+    setMeetings(meetings);
+    setSyncing(false);
+  }}
+>
+  <Ionicons name='sync' size={24} color='#4CAF50' />
+  <Text>Sincronizează Acum</Text>
+  {syncing && <ActivityIndicator />}
+</TouchableOpacity>
+
+6. SHOW sync status on meeting cards:
+
+// In meeting card, show if it's from external calendar
+{meeting.calendarSource && (
+  <View style={styles.syncBadge}>
+    <Ionicons name='cloud-done' size={12} color='#4CAF50' />
+    <Text style={styles.syncText}>Din {meeting.calendarSource}</Text>
+  </View>
+)}"

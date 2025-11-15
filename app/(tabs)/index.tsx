@@ -283,7 +283,7 @@ export default function CalendarScreen() {
                     {event.nameEn && <Text style={styles.eventNameEn}>{event.nameEn}</Text>}
                     {event.liturgyRequired && (
                       <View style={styles.liturgyBadge}>
-                        <Ionicons name="church" size={12} color={Colors.orthodox.royalBlue} />
+                        <Ionicons name="star" size={12} color={Colors.orthodox.royalBlue} />
                         <Text style={styles.eventLiturgy}>Divine Liturgy</Text>
                       </View>
                     )}
