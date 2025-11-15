@@ -1,0 +1,85 @@
+"Update app/(tabs)/settings.tsx to add calendar sync section:
+
+import { CalendarSyncService } from '../../lib/services/calendarSync';
+
+// Add this section in the settings screen:
+
+const CalendarSyncSection = () => {
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<string | null>(null);
+  const meetings = useAppStore(state => state.meetings);
+
+  const handleExportMeetings = async () => {
+    setSyncing(true);
+    try {
+      const count = await CalendarSyncService.syncAllMeetings(meetings);
+      Alert.alert('Succes', `${count} întâlniri exportate în calendar`);
+      setLastSync(format(new Date(), 'dd MMM HH:mm'));
+    } catch (error) {
+      Alert.alert('Eroare', 'Nu s-au putut exporta întâlnirile');
+    }
+    setSyncing(false);
+  };
+
+  const handleImportMeetings = async () => {
+    setSyncing(true);
+    try {
+      const startDate = new Date();
+      const endDate = addMonths(startDate, 3);
+      const imported = await CalendarSyncService.importMeetings(startDate, endDate);
+      
+      Alert.alert(
+        'Import Calendar',
+        `Găsite ${imported.length} întâlniri. Importați?`,
+        [
+          { text: 'Anulează', style: 'cancel' },
+          { 
+            text: 'Importă', 
+            onPress: async () => {
+              // Save imported meetings to database
+              for (const meeting of imported) {
+                await createMeeting(meeting);
+              }
+              const updated = await getAllMeetings();
+              setMeetings(updated);
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Eroare', 'Nu s-au putut importa întâlnirile');
+    }
+    setSyncing(false);
+  };
+
+  return (
+    <Card>
+      <Text style={styles.sectionTitle}>Sincronizare Calendar</Text>
+      
+      <TouchableOpacity 
+        style={styles.syncButton} 
+        onPress={handleExportMeetings}
+        disabled={syncing}
+      >
+        <Ionicons name='cloud-upload' size={24} color='#4169E1' />
+        <Text>Exportă în Calendar</Text>
+        {syncing && <ActivityIndicator />}
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={styles.syncButton} 
+        onPress={handleImportMeetings}
+        disabled={syncing}
+      >
+        <Ionicons name='cloud-download' size={24} color='#4CAF50' />
+        <Text>Importă din Calendar</Text>
+      </TouchableOpacity>
+
+      {lastSync && (
+        <Text style={styles.syncInfo}>
+          Ultima sincronizare: {lastSync}
+        </Text>
+      )}
+    </Card>
+  );
+};"
