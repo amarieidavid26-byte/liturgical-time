@@ -235,3 +235,19 @@ Preferred communication style: Simple, everyday language.
 - **iOS:** Black text color (#000000), light theme variant, spinner display
 - **Android:** Default display with white background
 - **Coverage:** All date/time pickers in new meetings, edit meetings, onboarding, and settings
+
+**Orthodox Events Tab - Chronological Feast Display (November 15, 2025):**
+- **Complete 90-Day Timeline:** Shows continuous day-by-day sequence from today forward, maintaining chronological order
+- **Smart Filtering:** Three filter options (Toate/All, Mari Sărbători/Great Feasts, Sărbători Majore/Major Feasts) that affect only which events show per day, not whether days appear
+- **Grouped Sections:** Days organized into time periods with Romanian labels:
+  - Astăzi (Today) - with gradient header and enhanced today card
+  - Săptămâna Aceasta (This Week) - days 1-7 from today
+  - Luna Aceasta (This Month) - days 8-30 from today
+  - Luna Viitoare (Next Month) - days 31-60 from today
+  - Mai Târziu (Later) - days 61-90 from today
+- **Full Romanian Localization:** All date formatting uses Romanian locale (date-fns/locale/ro)
+  - Romanian day names (luni, marți, miercuri, joi, vineri, sâmbătă, duminică)
+  - Romanian month names (ianuarie, februarie, martie, etc.)
+  - Date formats: "EEEE, d MMMM yyyy" and "d MMMM yyyy"
+- **Continuous Calendar View:** Every day in 90-day window displays regardless of events, fasting status, or filter selection
+- **Implementation:** `generateUpcomingFeasts()` function in `app/(tabs)/orthodox.tsx` builds complete day sequence, applies filters to events only
