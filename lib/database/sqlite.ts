@@ -21,6 +21,7 @@ export const initDatabase = async (): Promise<void> => {
         endTime TEXT NOT NULL,
         location TEXT,
         notes TEXT,
+        calendarEventId TEXT,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
@@ -35,6 +36,17 @@ export const initDatabase = async (): Promise<void> => {
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    
+    try {
+      await db.execAsync(`
+        ALTER TABLE meetings ADD COLUMN calendarEventId TEXT;
+      `);
+      console.log('Added calendarEventId column to existing meetings table');
+    } catch (alterError: any) {
+      if (!alterError.message?.includes('duplicate column name')) {
+        console.log('calendarEventId column already exists or other error:', alterError.message);
+      }
+    }
     
     isInitialized = true;
     console.log('Database initialized successfully');
@@ -93,8 +105,8 @@ export const createMeeting = async (meeting: Meeting): Promise<number> => {
   
   try {
     const result = await db.runAsync(
-      `INSERT INTO meetings (title, date, startTime, endTime, location, notes, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      `INSERT INTO meetings (title, date, startTime, endTime, location, notes, calendarEventId, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
       [
         meeting.title,
         meeting.date,
@@ -102,6 +114,7 @@ export const createMeeting = async (meeting: Meeting): Promise<number> => {
         meeting.endTime,
         meeting.location || null,
         meeting.notes || null,
+        meeting.calendarEventId || null,
       ]
     );
     return result.lastInsertRowId;
@@ -118,7 +131,7 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
   try {
     await db.runAsync(
       `UPDATE meetings 
-       SET title = ?, date = ?, startTime = ?, endTime = ?, location = ?, notes = ?, updatedAt = datetime('now')
+       SET title = ?, date = ?, startTime = ?, endTime = ?, location = ?, notes = ?, calendarEventId = ?, updatedAt = datetime('now')
        WHERE id = ?`,
       [
         meeting.title,
@@ -127,6 +140,7 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
         meeting.endTime,
         meeting.location || null,
         meeting.notes || null,
+        meeting.calendarEventId || null,
         meeting.id,
       ]
     );
