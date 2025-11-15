@@ -28,7 +28,17 @@ Preferred communication style: Simple, everyday language.
 - **Live Orthodox Data API:** Integrates with `orthocal.info` for daily liturgical data (saints, readings, fasting, feasts, tone), implementing 24-hour caching with AsyncStorage and graceful degradation to local data.
 - **Conflict Detection Engine:** Compares meeting times against parish liturgy schedules, Great Feasts, Major Feasts, and Sundays, calculating liturgy duration and returning conflict severity.
 - **Meeting Management:** CRUD operations for meetings with automatic conflict checking and visual indicators.
-- **Calendar Sync:** Native device calendar integration with automatic sync (opt-in), manual export button per meeting, dedicated "Timpul Liturgic" calendar, and persistent settings across app restarts.
+- **Two-Way Calendar Sync:** Comprehensive bidirectional synchronization with native device calendars (Apple Calendar, Google Calendar). Features include:
+  - **Smart Import:** Automatically imports meetings from external calendars with duplicate detection (comparing date + overlapping time)
+  - **Last-Modified-Wins Conflict Resolution:** Tracks lastSynced timestamps to resolve conflicts when meetings are edited in both locations
+  - **Bidirectional Editing:** Imported meetings are fully editable in the app with changes propagated back to the external calendar
+  - **External Event Tracking:** Database stores externalEventId, calendarSource, and lastSynced for each imported meeting
+  - **Auto-Sync on Foreground:** AppState listener triggers sync when app returns to foreground (battery-friendly)
+  - **Manual Sync Controls:** "Sync Now" button in Settings and pull-to-refresh on Meetings tab
+  - **Smart Filtering:** Excludes the app's liturgical calendar from imports to prevent circular syncing
+  - **Sync Status UI:** Meeting cards display badges showing calendar source for imported events
+  - **Persistent Settings:** Calendar preferences and sync state maintained across app restarts
+  - **Error Handling:** All sync operations wrapped in try/catch with logging to prevent crashes
 
 ### Platform Support
 - **Multi-Platform Rendering:** Supports iOS (SF Symbols), Android (Material Icons), and web (responsive layouts).
