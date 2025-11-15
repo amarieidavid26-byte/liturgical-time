@@ -130,7 +130,10 @@ export default function NewMeetingScreen() {
             <DateTimePicker
               value={date}
               mode="date"
-              display="spinner"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              textColor={Platform.OS === 'ios' ? '#000000' : undefined}
+              themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+              style={Platform.OS === 'android' ? { backgroundColor: 'white' } : undefined}
               onChange={(event, selectedDate) => {
                 setShowDatePicker(false);
                 if (selectedDate) setDate(selectedDate);
@@ -153,7 +156,10 @@ export default function NewMeetingScreen() {
               <DateTimePicker
                 value={startTime}
                 mode="time"
-                display="spinner"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                textColor={Platform.OS === 'ios' ? '#000000' : undefined}
+                themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+                style={Platform.OS === 'android' ? { backgroundColor: 'white' } : undefined}
                 onChange={(event, selectedTime) => {
                   setShowStartTimePicker(false);
                   if (selectedTime) setStartTime(selectedTime);
@@ -175,7 +181,10 @@ export default function NewMeetingScreen() {
               <DateTimePicker
                 value={endTime}
                 mode="time"
-                display="spinner"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                textColor={Platform.OS === 'ios' ? '#000000' : undefined}
+                themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+                style={Platform.OS === 'android' ? { backgroundColor: 'white' } : undefined}
                 onChange={(event, selectedTime) => {
                   setShowEndTimePicker(false);
                   if (selectedTime) setEndTime(selectedTime);

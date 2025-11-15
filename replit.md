@@ -193,3 +193,9 @@ Preferred communication style: Simple, everyday language.
 - **Feature:** Swipe-to-delete gesture for meetings using react-native-gesture-handler
 - **UI:** Red trash icon appears when swiping left on a meeting card
 - **UX:** Confirmation dialog appears before deleting a meeting
+
+**DateTimePicker Improvements:**
+- **Fixed:** Time picker digits now readable on both iOS and Android
+- **iOS:** Black text color (#000000), light theme variant, spinner display
+- **Android:** Default display with white background
+- **Coverage:** All date/time pickers in new meetings, edit meetings, onboarding, and settings

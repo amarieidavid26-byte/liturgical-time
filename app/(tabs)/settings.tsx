@@ -8,6 +8,7 @@ import {
   Switch,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -135,7 +136,10 @@ export default function SettingsScreen() {
           <DateTimePicker
             value={sundayTime}
             mode="time"
-            display="spinner"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            textColor={Platform.OS === 'ios' ? '#000000' : undefined}
+            themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+            style={Platform.OS === 'android' ? { backgroundColor: 'white' } : undefined}
             onChange={(event, date) => {
               setShowSundayPicker(false);
               if (date) setSundayTime(date);

@@ -105,7 +105,10 @@ export default function OnboardingScreen() {
               <DateTimePicker
                 value={sundayLiturgyTime}
                 mode="time"
-                display="spinner"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                textColor={Platform.OS === 'ios' ? '#000000' : undefined}
+                themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+                style={Platform.OS === 'android' ? { backgroundColor: 'white' } : undefined}
                 onChange={(event, date) => {
                   setShowSundayPicker(false);
                   if (date) setSundayLiturgyTime(date);
@@ -140,7 +143,10 @@ export default function OnboardingScreen() {
               <DateTimePicker
                 value={saturdayVespersTime}
                 mode="time"
-                display="spinner"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                textColor={Platform.OS === 'ios' ? '#000000' : undefined}
+                themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+                style={Platform.OS === 'android' ? { backgroundColor: 'white' } : undefined}
                 onChange={(event, date) => {
                   setShowSaturdayPicker(false);
                   if (date) setSaturdayVespersTime(date);
@@ -168,7 +174,10 @@ export default function OnboardingScreen() {
               <DateTimePicker
                 value={weekdayLiturgyTime}
                 mode="time"
-                display="spinner"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                textColor={Platform.OS === 'ios' ? '#000000' : undefined}
+                themeVariant={Platform.OS === 'ios' ? 'light' : undefined}
+                style={Platform.OS === 'android' ? { backgroundColor: 'white' } : undefined}
                 onChange={(event, date) => {
                   setShowWeekdayPicker(false);
                   if (date) setWeekdayLiturgyTime(date);
