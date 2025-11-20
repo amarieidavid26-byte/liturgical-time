@@ -10,14 +10,6 @@ import { getAllPrayers, savePrayer, updatePrayer, deletePrayer, markPrayerComple
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import Colors from '../../constants/Colors';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
 export default function PrayersScreen() {
   const t = useTranslation();
   const [prayers, setPrayers] = useState<Prayer[]>([]);
@@ -29,7 +21,7 @@ export default function PrayersScreen() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [reminderMinutes, setReminderMinutes] = useState(30);
   const [isDaily, setIsDaily] = useState(true);
-  const [selectedDays, setSelectedDays] = useState([0, 1, 2, 3, 4, 5, 6]);
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
   const loadPrayers = async () => {
     try {
@@ -70,30 +62,72 @@ export default function PrayersScreen() {
       const notificationTime = new Date(prayerTimeParsed);
       notificationTime.setMinutes(notificationTime.getMinutes() - prayer.reminderMinutes);
 
-      const trigger: any = {
-        hour: notificationTime.getHours(),
-        minute: notificationTime.getMinutes(),
-        repeats: prayer.isDaily,
-      };
+      const notificationIds: string[] = [];
 
-      if (!prayer.isDaily && prayer.selectedDays) {
-        const days = JSON.parse(prayer.selectedDays);
-        trigger.weekday = days;
+      if (prayer.isDaily) {
+        const notificationId = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `🕊️ ${t.notificationTitle}`,
+            body: t.notificationBody
+              .replace('{prayer}', prayer.name)
+              .replace('{minutes}', prayer.reminderMinutes.toString()),
+            sound: 'default',
+            data: { prayerId: prayer.id },
+          },
+          trigger: {
+            hour: notificationTime.getHours(),
+            minute: notificationTime.getMinutes(),
+            repeats: true,
+          },
+        });
+        notificationIds.push(notificationId);
+      } else {
+        let days: number[] = [];
+        try {
+          if (!prayer.selectedDays || prayer.selectedDays === '[]') {
+            console.warn('No days selected for weekly prayer, skipping scheduling');
+            return null;
+          }
+          days = JSON.parse(prayer.selectedDays);
+          if (!Array.isArray(days) || days.length === 0) {
+            console.warn('Invalid selectedDays, skipping weekly scheduling');
+            return null;
+          }
+        } catch (error) {
+          console.error('Failed to parse selectedDays:', error);
+          return null;
+        }
+
+        const uniqueDays = [...new Set(days)].filter(day => day >= 0 && day <= 6);
+        if (uniqueDays.length === 0) {
+          console.warn('No valid days after filtering, skipping weekly scheduling');
+          return null;
+        }
+
+        for (const day of uniqueDays) {
+          const expoWeekday = day === 0 ? 1 : day + 1;
+          
+          const notificationId = await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `🕊️ ${t.notificationTitle}`,
+              body: t.notificationBody
+                .replace('{prayer}', prayer.name)
+                .replace('{minutes}', prayer.reminderMinutes.toString()),
+              sound: 'default',
+              data: { prayerId: prayer.id },
+            },
+            trigger: {
+              hour: notificationTime.getHours(),
+              minute: notificationTime.getMinutes(),
+              weekday: expoWeekday,
+              repeats: true,
+            },
+          });
+          notificationIds.push(notificationId);
+        }
       }
 
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `🕊️ ${t.notificationTitle}`,
-          body: t.notificationBody
-            .replace('{prayer}', prayer.name)
-            .replace('{minutes}', prayer.reminderMinutes.toString()),
-          sound: 'default',
-          data: { prayerId: prayer.id },
-        },
-        trigger,
-      });
-
-      return notificationId;
+      return notificationIds.length > 0 ? JSON.stringify(notificationIds) : null;
     } catch (error) {
       console.error('Error scheduling notification:', error);
       return null;
@@ -106,13 +140,18 @@ export default function PrayersScreen() {
       return;
     }
 
+    if (!isDaily && selectedDays.length === 0) {
+      Alert.alert(t.required, t.selectDays);
+      return;
+    }
+
     try {
       const newPrayer: Prayer = {
         name: prayerName.trim(),
         time: format(prayerTime, 'HH:mm'),
         reminderMinutes,
         isDaily,
-        selectedDays: JSON.stringify(selectedDays),
+        selectedDays: isDaily ? '[]' : JSON.stringify(selectedDays),
         notificationId: null,
         streak: 0,
         isEnabled: true,
@@ -128,13 +167,34 @@ export default function PrayersScreen() {
       setPrayerTime(new Date());
       setReminderMinutes(30);
       setIsDaily(true);
-      setSelectedDays([0, 1, 2, 3, 4, 5, 6]);
+      setSelectedDays([]);
       setShowAddModal(false);
       
       Alert.alert(t.success, t.prayerSaved);
     } catch (error) {
       console.error('Error adding prayer:', error);
       Alert.alert(t.error, t.failedToSavePrayer);
+    }
+  };
+
+  const cancelPrayerNotifications = async (notificationId: string | null) => {
+    if (!notificationId) return;
+    
+    try {
+      const notificationIds = JSON.parse(notificationId);
+      if (Array.isArray(notificationIds)) {
+        for (const id of notificationIds) {
+          if (typeof id === 'string' && id.length > 0) {
+            await Notifications.cancelScheduledNotificationAsync(id);
+          }
+        }
+      }
+    } catch (error) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(notificationId);
+      } catch (fallbackError) {
+        console.error('Failed to cancel notification:', fallbackError);
+      }
     }
   };
 
@@ -149,9 +209,7 @@ export default function PrayersScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              if (prayer.notificationId) {
-                await Notifications.cancelScheduledNotificationAsync(prayer.notificationId);
-              }
+              await cancelPrayerNotifications(prayer.notificationId || null);
               if (prayer.id) {
                 await deletePrayer(prayer.id);
                 await loadPrayers();
@@ -175,9 +233,7 @@ export default function PrayersScreen() {
         const notificationId = await schedulePrayerNotification(updatedPrayer);
         updatedPrayer.notificationId = notificationId || null;
       } else {
-        if (prayer.notificationId) {
-          await Notifications.cancelScheduledNotificationAsync(prayer.notificationId);
-        }
+        await cancelPrayerNotifications(prayer.notificationId || null);
         updatedPrayer.notificationId = null;
       }
 
@@ -210,6 +266,14 @@ export default function PrayersScreen() {
   };
 
   const dayNames = [t.sunday, t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday];
+
+  const toggleDay = (day: number) => {
+    if (selectedDays.includes(day)) {
+      setSelectedDays(selectedDays.filter(d => d !== day));
+    } else {
+      setSelectedDays([...selectedDays, day].sort());
+    }
+  };
 
   return (
     <ScrollView 
@@ -400,6 +464,31 @@ export default function PrayersScreen() {
                 />
               </View>
             </View>
+
+            {!isDaily && (
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>{t.selectDays}</Text>
+                <View style={styles.dayPicker}>
+                  {dayNames.map((dayName, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.dayButton,
+                        selectedDays.includes(index) && styles.dayButtonActive
+                      ]}
+                      onPress={() => toggleDay(index)}
+                    >
+                      <Text style={[
+                        styles.dayButtonText,
+                        selectedDays.includes(index) && styles.dayButtonTextActive
+                      ]}>
+                        {dayName.substring(0, 3)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
 
             <View style={styles.modalActions}>
               <TouchableOpacity 
@@ -711,5 +800,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.orthodox.white,
+  },
+  dayPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: Colors.orthodox.lightGray,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  dayButtonActive: {
+    backgroundColor: Colors.orthodox.royalBlue,
+  },
+  dayButtonText: {
+    fontSize: 14,
+    color: Colors.orthodox.darkGray,
+    fontWeight: '500',
+  },
+  dayButtonTextActive: {
+    color: Colors.orthodox.white,
+    fontWeight: '600',
   },
 });
