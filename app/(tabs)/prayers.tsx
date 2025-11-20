@@ -23,9 +23,48 @@ export default function PrayersScreen() {
   const [isDaily, setIsDaily] = useState(true);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
+  const migrateLegacyNotificationIds = async (prayers: Prayer[]) => {
+    let migrationNeeded = false;
+    const migratedPrayers: Prayer[] = [];
+
+    for (const prayer of prayers) {
+      if (prayer.notificationId) {
+        try {
+          const parsed = JSON.parse(prayer.notificationId);
+          if (!Array.isArray(parsed)) {
+            const stringId = String(parsed);
+            if (stringId && stringId.length > 0 && stringId !== 'null' && stringId !== 'undefined') {
+              prayer.notificationId = JSON.stringify([stringId]);
+              migrationNeeded = true;
+              migratedPrayers.push(prayer);
+            }
+          }
+        } catch (error) {
+          if (prayer.notificationId.length > 0) {
+            prayer.notificationId = JSON.stringify([prayer.notificationId]);
+            migrationNeeded = true;
+            migratedPrayers.push(prayer);
+          }
+        }
+      }
+    }
+
+    if (migrationNeeded) {
+      for (const prayer of migratedPrayers) {
+        if (prayer.id) {
+          await updatePrayer(prayer);
+        }
+      }
+      console.log(`Migrated ${migratedPrayers.length} legacy notification IDs to array format`);
+    }
+
+    return prayers;
+  };
+
   const loadPrayers = async () => {
     try {
-      const loadedPrayers = await getAllPrayers();
+      let loadedPrayers = await getAllPrayers();
+      loadedPrayers = await migrateLegacyNotificationIds(loadedPrayers);
       setPrayers(loadedPrayers);
     } catch (error) {
       console.error('Error loading prayers:', error);
@@ -181,12 +220,19 @@ export default function PrayersScreen() {
     if (!notificationId) return;
     
     try {
-      const notificationIds = JSON.parse(notificationId);
-      if (Array.isArray(notificationIds)) {
-        for (const id of notificationIds) {
-          if (typeof id === 'string' && id.length > 0) {
-            await Notifications.cancelScheduledNotificationAsync(id);
+      const parsed = JSON.parse(notificationId);
+      
+      if (Array.isArray(parsed)) {
+        for (const id of parsed) {
+          const stringId = String(id);
+          if (stringId && stringId.length > 0 && stringId !== 'null' && stringId !== 'undefined') {
+            await Notifications.cancelScheduledNotificationAsync(stringId);
           }
+        }
+      } else if (parsed != null) {
+        const stringId = String(parsed);
+        if (stringId && stringId.length > 0 && stringId !== 'null' && stringId !== 'undefined') {
+          await Notifications.cancelScheduledNotificationAsync(stringId);
         }
       }
     } catch (error) {
@@ -227,14 +273,13 @@ export default function PrayersScreen() {
 
   const handleTogglePrayer = async (prayer: Prayer) => {
     try {
-      const updatedPrayer = { ...prayer, isEnabled: !prayer.isEnabled };
+      await cancelPrayerNotifications(prayer.notificationId || null);
+      
+      const updatedPrayer = { ...prayer, isEnabled: !prayer.isEnabled, notificationId: null };
       
       if (updatedPrayer.isEnabled) {
         const notificationId = await schedulePrayerNotification(updatedPrayer);
         updatedPrayer.notificationId = notificationId || null;
-      } else {
-        await cancelPrayerNotifications(prayer.notificationId || null);
-        updatedPrayer.notificationId = null;
       }
 
       await updatePrayer(updatedPrayer);
