@@ -35,6 +35,21 @@ export const initDatabase = async (): Promise<void> => {
         julianCalendarEnabled INTEGER NOT NULL DEFAULT 0,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
+      
+      CREATE TABLE IF NOT EXISTS prayers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        time TEXT NOT NULL,
+        reminderMinutes INTEGER DEFAULT 30,
+        isDaily INTEGER DEFAULT 1,
+        selectedDays TEXT,
+        notificationId TEXT,
+        lastCompleted TEXT,
+        streak INTEGER DEFAULT 0,
+        isEnabled INTEGER DEFAULT 1,
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     
     try {
@@ -263,6 +278,156 @@ export const deleteParishSettingsDb = async (): Promise<void> => {
     await db.runAsync('DELETE FROM parish_settings');
   } catch (error) {
     console.error('Error deleting parish settings:', error);
+    throw error;
+  }
+};
+
+export interface Prayer {
+  id?: number;
+  name: string;
+  time: string;
+  reminderMinutes: number;
+  isDaily: boolean;
+  selectedDays: string;
+  notificationId?: string | null;
+  lastCompleted?: string | null;
+  streak: number;
+  isEnabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const getAllPrayers = async (): Promise<Prayer[]> => {
+  if (!db) throw new Error('Database not initialized');
+  
+  try {
+    const result = await db.getAllAsync<any>(
+      'SELECT * FROM prayers ORDER BY time ASC'
+    );
+    return result.map(prayer => ({
+      ...prayer,
+      isDaily: prayer.isDaily === 1,
+      isEnabled: prayer.isEnabled === 1,
+    }));
+  } catch (error) {
+    console.error('Error getting prayers:', error);
+    throw error;
+  }
+};
+
+export const getPrayerById = async (id: number): Promise<Prayer | null> => {
+  if (!db) throw new Error('Database not initialized');
+  
+  try {
+    const result = await db.getFirstAsync<any>(
+      'SELECT * FROM prayers WHERE id = ?',
+      [id]
+    );
+    if (result) {
+      return {
+        ...result,
+        isDaily: result.isDaily === 1,
+        isEnabled: result.isEnabled === 1,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting prayer by id:', error);
+    throw error;
+  }
+};
+
+export const savePrayer = async (prayer: Prayer): Promise<number> => {
+  if (!db) throw new Error('Database not initialized');
+  
+  try {
+    const result = await db.runAsync(
+      `INSERT INTO prayers (name, time, reminderMinutes, isDaily, selectedDays, notificationId, lastCompleted, streak, isEnabled)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        prayer.name,
+        prayer.time,
+        prayer.reminderMinutes,
+        prayer.isDaily ? 1 : 0,
+        prayer.selectedDays,
+        prayer.notificationId || null,
+        prayer.lastCompleted || null,
+        prayer.streak || 0,
+        prayer.isEnabled !== false ? 1 : 0,
+      ]
+    );
+    return result.lastInsertRowId;
+  } catch (error) {
+    console.error('Error saving prayer:', error);
+    throw error;
+  }
+};
+
+export const updatePrayer = async (prayer: Prayer): Promise<void> => {
+  if (!db) throw new Error('Database not initialized');
+  if (!prayer.id) throw new Error('Prayer ID is required for update');
+  
+  try {
+    await db.runAsync(
+      `UPDATE prayers 
+       SET name = ?, time = ?, reminderMinutes = ?, isDaily = ?, selectedDays = ?, 
+           notificationId = ?, lastCompleted = ?, streak = ?, isEnabled = ?, updatedAt = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [
+        prayer.name,
+        prayer.time,
+        prayer.reminderMinutes,
+        prayer.isDaily ? 1 : 0,
+        prayer.selectedDays,
+        prayer.notificationId || null,
+        prayer.lastCompleted || null,
+        prayer.streak || 0,
+        prayer.isEnabled !== false ? 1 : 0,
+        prayer.id,
+      ]
+    );
+  } catch (error) {
+    console.error('Error updating prayer:', error);
+    throw error;
+  }
+};
+
+export const deletePrayer = async (id: number): Promise<void> => {
+  if (!db) throw new Error('Database not initialized');
+  
+  try {
+    await db.runAsync('DELETE FROM prayers WHERE id = ?', [id]);
+  } catch (error) {
+    console.error('Error deleting prayer:', error);
+    throw error;
+  }
+};
+
+export const deleteAllPrayers = async (): Promise<void> => {
+  if (!db) throw new Error('Database not initialized');
+  
+  try {
+    await db.runAsync('DELETE FROM prayers');
+  } catch (error) {
+    console.error('Error deleting all prayers:', error);
+    throw error;
+  }
+};
+
+export const markPrayerCompleted = async (id: number): Promise<void> => {
+  if (!db) throw new Error('Database not initialized');
+  
+  try {
+    const prayer = await getPrayerById(id);
+    if (!prayer) return;
+    
+    const newStreak = prayer.streak + 1;
+    await db.runAsync(
+      'UPDATE prayers SET lastCompleted = CURRENT_TIMESTAMP, streak = ? WHERE id = ?',
+      [newStreak, id]
+    );
+  } catch (error) {
+    console.error('Error marking prayer completed:', error);
     throw error;
   }
 };

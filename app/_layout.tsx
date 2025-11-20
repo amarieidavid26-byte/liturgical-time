@@ -6,12 +6,21 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { initDatabase, getAllMeetings, getParishSettingsDb } from '../lib/database/sqlite';
 import { getParishSettings, getOnboardingCompleted, getCalendarSyncEnabled, getCalendarId } from '../lib/utils/storage';
 import { checkCalendarPermissions, smartImportMeetings, syncExternalChanges } from '../lib/calendar/calendarSyncService';
 import useAppStore from '../lib/store/appStore';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

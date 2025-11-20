@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCalendarsUsageDescription": "Timpul Liturgic necesită acces la calendar pentru sincronizarea întâlnirilor cu calendarul dispozitivului.",
-        "NSRemindersUsageDescription": "Timpul Liturgic necesită acces pentru a crea amintiri pentru slujbe și întâlniri."
+        "NSRemindersUsageDescription": "Timpul Liturgic necesită acces pentru a crea amintiri pentru slujbe și întâlniri.",
+        "NSUserNotificationsUsageDescription": "Timpul Liturgic trimite notificări pentru amintirile de rugăciune."
       }
     },
     "android": {
@@ -23,7 +24,8 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "READ_CALENDAR",
-        "WRITE_CALENDAR"
+        "WRITE_CALENDAR",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -40,6 +42,14 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#800020",
+          "sounds": []
         }
       ]
     ],
