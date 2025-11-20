@@ -26,6 +26,8 @@ import {
   syncExternalChanges,
 } from '../../lib/calendar/calendarSyncService';
 import { getAllMeetings } from '../../lib/database/sqlite';
+import { SyncStatus } from '../../components/ui/SyncStatus';
+import { triggerManualSync } from '../../lib/calendar/instantSync';
 
 export default function SettingsScreen() {
   const { 
@@ -130,30 +132,6 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    try {
-      const result = await smartImportMeetings();
-      const syncResult = await syncExternalChanges();
-      
-      const { setMeetings } = useAppStore.getState();
-      const meetings = await getAllMeetings();
-      setMeetings(meetings);
-      
-      const message = t.syncCompleteMessage
-        .replace('{imported}', result.imported.toString())
-        .replace('{updated}', syncResult.updated.toString())
-        .replace('{deleted}', syncResult.deleted.toString())
-        .replace('{skipped}', result.skipped.toString());
-      Alert.alert(t.syncComplete, message);
-    } catch (error) {
-      console.error('Manual sync error:', error);
-      Alert.alert(t.syncError, t.failedToSyncCalendar);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
   const handleToggleCalendarSync = async (enabled: boolean) => {
     if (enabled) {
       setIsEnablingSync(true);
@@ -203,8 +181,13 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleManualSync = async () => {
+    await triggerManualSync();
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <SyncStatus onManualSync={handleManualSync} />
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t.parishSettings}</Text>
         

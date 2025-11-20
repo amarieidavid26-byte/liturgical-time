@@ -1,0 +1,96 @@
+"Recheck and improve calendar sync for INSTANT bidirectional synchronization:
+
+1. VERIFY two-way sync is working:
+
+// In lib/calendar/calendarSyncService.ts, add real-time sync:
+
+export class CalendarSyncService {
+  static syncInterval: any = null;
+  
+  // Enable real-time sync
+  static enableRealTimeSync(callback: () => void) {
+    // Sync every 30 seconds when app is active
+    this.syncInterval = setInterval(async () => {
+      console.log('⚡ Real-time sync check...');
+      
+      // Import new events from device calendar
+      const imported = await this.smartImportMeetings();
+      
+      // Check for external changes
+      const updated = await this.syncExternalChanges();
+      
+      if (imported > 0 || updated > 0) {
+        console.log(`✅ Synced: ${imported} new, ${updated} updated`);
+        callback(); // Refresh UI
+      }
+    }, 30000); // Every 30 seconds
+  }
+  
+  // Instant push to calendar when meeting created/updated
+  static async instantPushToCalendar(meeting: Meeting) {
+    try {
+      // Delete old event if exists
+      if (meeting.calendarEventId) {
+        await Calendar.deleteEventAsync(meeting.calendarEventId);
+      }
+      
+      // Create new event immediately
+      const eventId = await this.syncMeetingToCalendar(meeting);
+      console.log('⚡ Instant push complete:', eventId);
+      return eventId;
+    } catch (error) {
+      console.error('Instant push failed:', error);
+    }
+  }
+  
+  // Instant pull from calendar on app focus
+  static async instantPullFromCalendar() {
+    console.log('⚡ Instant pull starting...');
+    const changes = await this.smartImportMeetings();
+    console.log('⚡ Instant pull complete:', changes);
+    return changes;
+  }
+}
+
+2. UPDATE app/_layout.tsx for instant sync on app focus:
+
+useEffect(() => {
+  // INSTANT sync when app becomes active
+  const subscription = AppState.addEventListener('change', (nextAppState) => {
+    if (nextAppState === 'active' && calendarSyncEnabled) {
+      // Immediate sync - no delay
+      CalendarSyncService.instantPullFromCalendar().then(changes => {
+        if (changes > 0) {
+          getAllMeetings().then(setMeetings);
+          showToast(`📥 ${changes} meetings synced`);
+        }
+      });
+    }
+  });
+  
+  // Enable real-time background sync
+  if (calendarSyncEnabled) {
+    CalendarSyncService.enableRealTimeSync(() => {
+      getAllMeetings().then(setMeetings);
+    });
+  }
+  
+  return () => {
+    subscription.remove();
+    clearInterval(CalendarSyncService.syncInterval);
+  };
+}, [calendarSyncEnabled]);
+
+3. TEST both directions:
+- Create meeting in app → INSTANTLY appears in Apple Calendar ✓
+- Create event in Apple Calendar → appears in app within 30 seconds ✓
+- Edit in either place → syncs to both ✓
+- Delete in either place → removes from both ✓
+
+4. ADD visual sync indicator in UI:
+<View style={styles.syncIndicator}>
+  {syncing && <ActivityIndicator size='small' />}
+  <Text style={styles.syncText}>
+    {syncing ? 'Syncing...' : `Last sync: ${lastSyncTime}`}
+  </Text>
+</View>"

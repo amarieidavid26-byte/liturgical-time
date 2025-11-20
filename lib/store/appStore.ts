@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { Meeting, ParishSettings, ViewMode } from '../types';
 import { CalendarPermissionStatus } from '../calendar/calendarSyncService';
+import { SyncStatus } from '../calendar/CalendarSyncController';
+
+interface PendingSyncOperation {
+  meetingId: number;
+  operation: 'create' | 'update' | 'delete';
+  meeting: Meeting;
+  timestamp: number;
+}
 
 interface AppStore {
   parishSettings: ParishSettings | null;
@@ -14,6 +22,8 @@ interface AppStore {
   calendarSyncEnabled: boolean;
   calendarId: string | null;
   calendarPermissionStatus: CalendarPermissionStatus;
+  syncStatus: SyncStatus;
+  syncQueue: PendingSyncOperation[];
   
   setParishSettings: (settings: ParishSettings | null) => void;
   setMeetings: (meetings: Meeting[]) => void;
@@ -29,6 +39,9 @@ interface AppStore {
   setCalendarSyncEnabled: (enabled: boolean) => void;
   setCalendarId: (id: string | null) => void;
   setCalendarPermissionStatus: (status: CalendarPermissionStatus) => void;
+  setSyncStatus: (status: SyncStatus) => void;
+  enqueueSyncOperation: (operation: PendingSyncOperation) => void;
+  dequeueSyncOperation: (meetingId: number) => void;
   reset: () => void;
 }
 
@@ -44,6 +57,16 @@ const useAppStore = create<AppStore>((set) => ({
   calendarSyncEnabled: false,
   calendarId: null,
   calendarPermissionStatus: 'undetermined',
+  syncStatus: {
+    isSyncing: false,
+    lastSyncAt: null,
+    lastSyncSuccess: true,
+    error: null,
+    importedCount: 0,
+    updatedCount: 0,
+    deletedCount: 0,
+  },
+  syncQueue: [],
   
   setParishSettings: (settings) => set({ parishSettings: settings }),
   
@@ -81,6 +104,16 @@ const useAppStore = create<AppStore>((set) => ({
   
   setCalendarPermissionStatus: (status) => set({ calendarPermissionStatus: status }),
   
+  setSyncStatus: (status) => set({ syncStatus: status }),
+  
+  enqueueSyncOperation: (operation) => set((state) => ({
+    syncQueue: [...state.syncQueue, operation],
+  })),
+  
+  dequeueSyncOperation: (meetingId) => set((state) => ({
+    syncQueue: state.syncQueue.filter((op) => op.meetingId !== meetingId),
+  })),
+  
   reset: () => set({
     parishSettings: null,
     meetings: [],
@@ -93,6 +126,16 @@ const useAppStore = create<AppStore>((set) => ({
     calendarSyncEnabled: false,
     calendarId: null,
     calendarPermissionStatus: 'undetermined',
+    syncStatus: {
+      isSyncing: false,
+      lastSyncAt: null,
+      lastSyncSuccess: true,
+      error: null,
+      importedCount: 0,
+      updatedCount: 0,
+      deletedCount: 0,
+    },
+    syncQueue: [],
   }),
 }));
 

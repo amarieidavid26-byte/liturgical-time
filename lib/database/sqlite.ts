@@ -22,6 +22,10 @@ export const initDatabase = async (): Promise<void> => {
         location TEXT,
         notes TEXT,
         calendarEventId TEXT,
+        externalEventId TEXT,
+        calendarSource TEXT,
+        lastSynced TEXT,
+        sourceOfTruth TEXT,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
       );
@@ -93,6 +97,17 @@ export const initDatabase = async (): Promise<void> => {
     } catch (alterError: any) {
       if (!alterError.message?.includes('duplicate column name')) {
         console.log('lastSynced column already exists');
+      }
+    }
+    
+    try {
+      await db.execAsync(`
+        ALTER TABLE meetings ADD COLUMN sourceOfTruth TEXT;
+      `);
+      console.log('Added sourceOfTruth column to existing meetings table');
+    } catch (alterError: any) {
+      if (!alterError.message?.includes('duplicate column name')) {
+        console.log('sourceOfTruth column already exists');
       }
     }
     
@@ -168,7 +183,15 @@ export const createMeeting = async (meeting: Meeting): Promise<number> => {
         meeting.lastSynced || null,
       ]
     );
-    return result.lastInsertRowId;
+    
+    const meetingId = result.lastInsertRowId;
+    const createdMeeting = { ...meeting, id: meetingId };
+    
+    import('../calendar/instantSync').then(({ instantPushMeeting }) => {
+      instantPushMeeting(createdMeeting, 'create');
+    });
+    
+    return meetingId;
   } catch (error) {
     console.error('Error creating meeting:', error);
     throw error;
@@ -198,6 +221,10 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
         meeting.id,
       ]
     );
+    
+    import('../calendar/instantSync').then(({ instantPushMeeting }) => {
+      instantPushMeeting(meeting, 'update');
+    });
   } catch (error) {
     console.error('Error updating meeting:', error);
     throw error;
@@ -208,7 +235,15 @@ export const deleteMeeting = async (id: number): Promise<void> => {
   if (!db) throw new Error('Database not initialized');
   
   try {
+    const meeting = await getMeetingById(id);
+    
     await db.runAsync('DELETE FROM meetings WHERE id = ?', [id]);
+    
+    if (meeting) {
+      import('../calendar/instantSync').then(({ instantPushMeeting }) => {
+        instantPushMeeting(meeting, 'delete');
+      });
+    }
   } catch (error) {
     console.error('Error deleting meeting:', error);
     throw error;

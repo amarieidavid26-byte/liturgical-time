@@ -19,6 +19,8 @@ import { detectConflicts } from '../../lib/calendar/conflictDetection';
 import { Meeting } from '../../lib/types';
 import { useTranslation } from '../../lib/hooks/useTranslation';
 import { deleteMeetingFromCalendar, syncMeetingToCalendar, deleteExternalCalendarEvent, smartImportMeetings, syncExternalChanges } from '../../lib/calendar/calendarSyncService';
+import { SyncStatus } from '../../components/ui/SyncStatus';
+import { triggerManualSync } from '../../lib/calendar/instantSync';
 
 export default function MeetingsScreen() {
   const { meetings, setMeetings, parishSettings, calendarSyncEnabled, calendarId } = useAppStore();
@@ -38,6 +40,8 @@ export default function MeetingsScreen() {
 
   const handleRefresh = async () => {
     if (!calendarSyncEnabled) {
+      const updated = await getAllMeetings();
+      setMeetings(updated);
       return;
     }
 
@@ -55,6 +59,12 @@ export default function MeetingsScreen() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleManualSync = async () => {
+    await triggerManualSync();
+    const updated = await getAllMeetings();
+    setMeetings(updated);
   };
 
   const handleExportMeeting = async (meeting: Meeting) => {
@@ -207,6 +217,7 @@ export default function MeetingsScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
+        <SyncStatus onManualSync={handleManualSync} />
         <FlatList
           data={upcomingMeetings}
           renderItem={renderMeeting}

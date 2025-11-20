@@ -12,6 +12,7 @@ export interface Meeting {
   lastSynced?: string;
   createdAt?: string;
   updatedAt?: string;
+  sourceOfTruth?: 'app' | 'external' | 'conflict';
 }
 
 export interface ParishSettings {

@@ -39,17 +39,19 @@ Preferred communication style: Simple, everyday language.
   - **Streak Tracking:** Monitors consecutive days of prayer completion to encourage consistency
   - **Prayer Presets:** Quick-add templates for common Orthodox prayers (Morning Prayers, Evening Prayers, Akathist)
   - **Data Validation:** Robust validation for selectedDays arrays with deduplication and bounds checking
-- **Two-Way Calendar Sync:** Comprehensive bidirectional synchronization with native device calendars (Apple Calendar, Google Calendar). Features include:
-  - **Smart Import:** Automatically imports meetings from external calendars with duplicate detection (comparing date + overlapping time)
-  - **Last-Modified-Wins Conflict Resolution:** Tracks lastSynced timestamps to resolve conflicts when meetings are edited in both locations
-  - **Bidirectional Editing:** Imported meetings are fully editable in the app with changes propagated back to the external calendar
-  - **External Event Tracking:** Database stores externalEventId, calendarSource, and lastSynced for each imported meeting
-  - **Auto-Sync on Foreground:** AppState listener triggers sync when app returns to foreground (battery-friendly)
-  - **Manual Sync Controls:** "Sync Now" button in Settings and pull-to-refresh on Meetings tab
-  - **Smart Filtering:** Excludes the app's liturgical calendar from imports to prevent circular syncing
-  - **Sync Status UI:** Meeting cards display badges showing calendar source for imported events
-  - **Persistent Settings:** Calendar preferences and sync state maintained across app restarts
-  - **Error Handling:** All sync operations wrapped in try/catch with logging to prevent crashes
+- **Instant Bidirectional Calendar Sync:** Production-ready real-time synchronization with native device calendars (Apple Calendar, Google Calendar). Features include:
+  - **CalendarSyncController:** Smart polling with conditional intervals (60-120s), jitter/backoff, mutex for preventing overlapping syncs, retry budget with auto-disable after failures
+  - **Instant Push:** Debounced (1s) automatic sync when meetings are created/updated/deleted in app, integrated via dynamic imports in database layer
+  - **Instant Pull:** Triggered when app becomes active via AppState listener, smart duplicate detection comparing date + time overlap
+  - **Conflict Detection:** Timestamp-based detection with latest-wins resolution strategy, tracks sourceOfTruth field ('app', 'external', 'conflict')
+  - **External Event Tracking:** Database stores externalEventId, calendarSource, lastSynced, sourceOfTruth, createdAt, updatedAt for conflict resolution
+  - **Smart Polling:** Pauses when app is inactive, applies exponential backoff when no changes detected, resets interval when changes found
+  - **SyncStatus UI Component:** Shows real-time sync state (syncing, success, error), last sync time with relative timestamps, manual sync button, retry on failure
+  - **State Management:** Zustand store tracks syncStatus (isSyncing, lastSyncAt, error, counts) and syncQueue for pending operations
+  - **Lifecycle Management:** Controller lifecycle tied to calendarSyncEnabled state, starts/stops automatically when sync is toggled
+  - **Manual Sync:** Available in Meetings tab (pull-to-refresh) and Settings tab ("Sync Now" button), validates sync is enabled before running
+  - **Smart Filtering:** Excludes app's liturgical calendar from imports to prevent circular syncing
+  - **Error Handling:** Comprehensive try/catch with logging, retry budget prevents infinite retry loops, graceful degradation
 
 ### Platform Support
 - **Multi-Platform Rendering:** Supports iOS (SF Symbols), Android (Material Icons), and web (responsive layouts).
