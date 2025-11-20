@@ -45,7 +45,9 @@ export default {
     // Special
     sundayGold: '#FFF7E6',
     fastingPurple: '#F3E8FF',
+    fastingBadge: '#9370DB',
     feastBlue: '#EFF6FF',
+    cream: '#FFF8DC',
   },
   
   calendar: {

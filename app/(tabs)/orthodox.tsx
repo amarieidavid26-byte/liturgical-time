@@ -46,17 +46,17 @@ const LiturgicalHeader = () => {
   
   return (
     <LinearGradient 
-      colors={['#800020', '#4A0012']} 
+      colors={Colors.orthodox.burgundyGradient} 
       style={{
         padding: 20,
         alignItems: 'center',
         marginBottom: 10
       }}
     >
-      <Text style={{ color: '#FFD700', fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>
+      <Text style={{ color: Colors.orthodox.gold, fontSize: 18, fontWeight: 'bold', textAlign: 'center' }}>
         {currentPeriod}
       </Text>
-      <Text style={{ color: '#FFF', fontSize: 14, marginTop: 4 }}>
+      <Text style={{ color: Colors.orthodox.white, fontSize: 14, marginTop: 4 }}>
         Glasul {currentTone}
       </Text>
     </LinearGradient>
@@ -204,9 +204,9 @@ export default function OrthodoxScreen() {
       const hasGreatFeast = feast.events.some(e => e.level === 'great');
       const hasMajorFeast = feast.events.some(e => e.level === 'major');
       
-      if (hasGreatFeast) return '#FFD700';
-      if (hasMajorFeast) return '#4169E1';
-      if (feast.fasting !== 'none') return '#9370DB';
+      if (hasGreatFeast) return Colors.orthodox.gold;
+      if (hasMajorFeast) return Colors.orthodox.royalBlue;
+      if (feast.fasting !== 'none') return Colors.orthodox.fastingBadge;
       return 'transparent';
     };
     
@@ -220,14 +220,11 @@ export default function OrthodoxScreen() {
       <View 
         key={`feast-${feast.dateStr}-${index}`}
         style={{
-          backgroundColor: feast.fasting !== 'none' ? '#FAF5FF' : '#FFF',
+          backgroundColor: feast.fasting !== 'none' ? Colors.orthodox.fastingPurple : Colors.orthodox.cardBg,
           marginHorizontal: 12,
           marginVertical: 6,
           borderRadius: 12,
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
+          ...Colors.shadows.medium,
           flexDirection: 'row',
           overflow: 'hidden',
           borderWidth: getBorderWidth(),
@@ -236,19 +233,19 @@ export default function OrthodoxScreen() {
       >
         <View style={{
           width: 80,
-          backgroundColor: feast.isSunday ? '#FFD700' : '#800020',
+          backgroundColor: feast.isSunday ? Colors.orthodox.gold : Colors.orthodox.burgundy,
           alignItems: 'center',
           justifyContent: 'center',
           padding: 10
         }}>
-          <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#FFF' }}>
+          <Text style={{ fontSize: 32, fontWeight: 'bold', color: Colors.orthodox.white }}>
             {format(feast.date, 'd', { locale: ro })}
           </Text>
-          <Text style={{ fontSize: 11, color: '#FFF', textTransform: 'uppercase' }}>
+          <Text style={{ fontSize: 11, color: Colors.orthodox.white, textTransform: 'uppercase' }}>
             {format(feast.date, 'MMM', { locale: ro })}
           </Text>
           {feast.isSunday && (
-            <Text style={{ fontSize: 9, color: '#800020', marginTop: 4, fontWeight: 'bold', backgroundColor: '#FFF', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 }}>
+            <Text style={{ fontSize: 9, color: Colors.orthodox.burgundy, marginTop: 4, fontWeight: 'bold', backgroundColor: Colors.orthodox.white, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 }}>
               DUMINICĂ
             </Text>
           )}
@@ -267,7 +264,7 @@ export default function OrthodoxScreen() {
                   <Text style={{
                     fontSize: event.level === 'great' ? 15 : 13,
                     fontWeight: event.level === 'great' ? 'bold' : 'normal',
-                    color: event.level === 'great' ? '#800020' : '#333',
+                    color: event.level === 'great' ? Colors.orthodox.burgundy : Colors.orthodox.primaryText,
                     flex: 1
                   }}>
                     {event.name}
@@ -279,28 +276,28 @@ export default function OrthodoxScreen() {
               </View>
             ))
           ) : (
-            <Text style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
+            <Text style={{ fontSize: 13, color: Colors.orthodox.mutedText, fontStyle: 'italic' }}>
               {format(feast.date, 'EEEE', { locale: ro })}
             </Text>
           )}
           
           {feast.fasting !== 'none' && (
             <View style={{
-              backgroundColor: '#9370DB',
+              backgroundColor: Colors.orthodox.fastingBadge,
               paddingHorizontal: 8,
               paddingVertical: 3,
               borderRadius: 4,
               alignSelf: 'flex-start',
               marginTop: 6
             }}>
-              <Text style={{ fontSize: 11, color: '#FFF', fontWeight: '600' }}>
+              <Text style={{ fontSize: 11, color: Colors.orthodox.white, fontWeight: '600' }}>
                 {getFastingLabel(feast.fasting)}
               </Text>
             </View>
           )}
           
           {julianCalendarEnabled && (
-            <Text style={{ fontSize: 10, color: '#999', marginTop: 4 }}>
+            <Text style={{ fontSize: 10, color: Colors.orthodox.mutedText, marginTop: 4 }}>
               Julian: {formatJulianDate(feast.date)}
             </Text>
           )}
@@ -496,15 +493,16 @@ export default function OrthodoxScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.orthodox.primaryBg,
   },
   todayCard: {
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.orthodox.cardBg,
     margin: 16,
     padding: 16,
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: Colors.orthodox.gold,
+    ...Colors.shadows.medium,
   },
   todayHeader: {
     flexDirection: 'row',
@@ -515,12 +513,11 @@ const styles = StyleSheet.create({
   todayTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
   },
   todayDate: {
     fontSize: 14,
-    color: Colors.orthodox.darkGray,
-    opacity: 0.7,
+    color: Colors.orthodox.secondaryText,
     marginTop: 4,
   },
   todaySection: {
@@ -538,11 +535,11 @@ const styles = StyleSheet.create({
   todaySectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
   },
   todayText: {
     fontSize: 14,
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
     lineHeight: 20,
     marginBottom: 4,
   },
@@ -552,7 +549,7 @@ const styles = StyleSheet.create({
   mainSectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
     marginHorizontal: 16,
     marginBottom: 8,
   },
@@ -566,8 +563,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.orthodox.cardBg,
     alignItems: 'center',
+    ...Colors.shadows.small,
   },
   filterButtonActive: {
     backgroundColor: Colors.orthodox.royalBlue,
@@ -575,7 +573,7 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
   },
   filterTextActive: {
     color: Colors.orthodox.white,
@@ -587,20 +585,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
     marginTop: 8,
     marginBottom: 16,
   },
   eventCard: {
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.orthodox.cardBg,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
     borderLeftColor: Colors.orthodox.royalBlue,
+    ...Colors.shadows.medium,
   },
   eventCardGreat: {
-    backgroundColor: Colors.calendar.feastBackground,
+    backgroundColor: Colors.orthodox.cream,
     borderLeftColor: Colors.orthodox.gold,
   },
   eventCardMajor: {
@@ -618,12 +617,11 @@ const styles = StyleSheet.create({
   eventName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
   },
   eventNameEn: {
     fontSize: 14,
-    color: Colors.orthodox.darkGray,
-    opacity: 0.7,
+    color: Colors.orthodox.secondaryText,
     marginTop: 4,
   },
   badge: {
@@ -650,7 +648,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: Colors.orthodox.darkGray,
+    color: Colors.orthodox.primaryText,
   },
   groupedSection: {
     marginBottom: 24,
