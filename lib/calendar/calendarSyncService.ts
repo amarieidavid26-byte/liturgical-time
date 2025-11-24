@@ -62,26 +62,54 @@ export const getOrCreateCalendar = async (): Promise<string | null> => {
       return existingCalendar.id;
     }
 
-    const defaultCalendarSource = 
-      Platform.OS === 'ios'
-        ? await getDefaultCalendarSource()
-        : { isLocalAccount: true, name: CALENDAR_NAME, type: Calendar.SourceType.LOCAL };
-
-    if (!defaultCalendarSource) {
-      console.error('No calendar source available');
-      return null;
+    let calendarSource;
+    if (Platform.OS === 'ios') {
+      calendarSource = await getDefaultCalendarSource();
+      if (!calendarSource || !calendarSource.id) {
+        console.error('No valid calendar source with ID available on iOS');
+        return null;
+      }
+    } else {
+      const googleCal = calendars.find(cal => cal.source?.name === 'Google');
+      if (googleCal?.source) {
+        calendarSource = googleCal.source;
+        console.log('Using Google calendar source');
+      } else {
+        const anyWritableCal = calendars.find(cal => 
+          cal.allowsModifications && 
+          cal.source?.id
+        );
+        if (anyWritableCal?.source) {
+          calendarSource = anyWritableCal.source;
+          console.log('Using calendar source:', anyWritableCal.source.name);
+        } else {
+          calendarSource = {
+            isLocalAccount: true,
+            name: 'Local',
+            type: 'LOCAL'
+          };
+          console.log('Using default local source for Android');
+        }
+      }
     }
 
-    const newCalendarId = await Calendar.createCalendarAsync({
+    const calendarConfig: any = {
       title: CALENDAR_NAME,
-      color: '#4169E1',
+      color: Platform.OS === 'ios' ? '#800020' : '#800020FF',
       entityType: Calendar.EntityTypes.EVENT,
-      sourceId: defaultCalendarSource.id,
-      source: defaultCalendarSource,
-      name: CALENDAR_NAME,
-      ownerAccount: CALENDAR_NAME,
+      name: 'ortodox',
+      ownerAccount: Platform.OS === 'android' ? 'liturgical.time@local' : 'personal',
       accessLevel: Calendar.CalendarAccessLevel.OWNER,
-    });
+    };
+
+    if (calendarSource.id) {
+      calendarConfig.sourceId = calendarSource.id;
+      calendarConfig.source = calendarSource;
+    } else if (Platform.OS === 'android') {
+      calendarConfig.source = calendarSource;
+    }
+
+    const newCalendarId = await Calendar.createCalendarAsync(calendarConfig);
 
     console.log('Created new calendar:', newCalendarId);
     return newCalendarId;
@@ -221,19 +249,36 @@ export const getExternalCalendarEvents = async (
 
     const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
     
-    const externalCalendars = calendars.filter(cal => 
-      cal.title !== CALENDAR_NAME && 
-      cal.allowsModifications &&
-      (cal.source.name === 'iCloud' || 
-       cal.source.name === 'Google' || 
-       cal.source.name === 'Default' ||
-       cal.source.name === 'Local')
-    );
+    const externalCalendars = calendars.filter(cal => {
+      if (cal.title === CALENDAR_NAME) return false;
+      
+      if (!cal.allowsModifications) return false;
+      
+      const validSources = [
+        'iCloud',
+        'Google',
+        'Default',
+        'Samsung',
+        'Mi Calendar',
+        'OnePlus',
+        'Local',
+        'com.android.calendar',
+        'Outlook',
+        'Yahoo',
+        'Exchange'
+      ];
+      
+      return validSources.includes(cal.source.name) || 
+             (Platform.OS === 'android' && cal.source.isLocalAccount);
+    });
     
     if (externalCalendars.length === 0) {
       console.log('No external calendars found');
       return [];
     }
+
+    console.log(`Found ${externalCalendars.length} external calendars:`, 
+      externalCalendars.map(cal => `${cal.title} (${cal.source.name})`));
 
     const calendarIds = externalCalendars.map(cal => cal.id);
     const events = await Calendar.getEventsAsync(calendarIds, startDate, endDate);

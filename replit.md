@@ -39,7 +39,7 @@ Preferred communication style: Simple, everyday language.
   - **Streak Tracking:** Monitors consecutive days of prayer completion to encourage consistency
   - **Prayer Presets:** Quick-add templates for common Orthodox prayers (Morning Prayers, Evening Prayers, Akathist)
   - **Data Validation:** Robust validation for selectedDays arrays with deduplication and bounds checking
-- **Instant Bidirectional Calendar Sync:** Production-ready real-time synchronization with native device calendars (Apple Calendar, Google Calendar). Features include:
+- **Instant Bidirectional Calendar Sync:** Production-ready real-time synchronization with ALL native device calendars on iOS and Android. Supports iCloud, Google, Samsung, Xiaomi, OnePlus, Outlook, Yahoo, Exchange, and local calendars. Features include:
   - **CalendarSyncController:** Smart polling with conditional intervals (60-120s), jitter/backoff, mutex for preventing overlapping syncs, retry budget with auto-disable after failures
   - **Instant Push:** Debounced (1s) automatic sync when meetings are created/updated/deleted in app, integrated via dynamic imports in database layer
   - **Instant Pull:** Triggered when app becomes active via AppState listener, smart duplicate detection comparing date + time overlap
@@ -51,6 +51,8 @@ Preferred communication style: Simple, everyday language.
   - **Lifecycle Management:** Controller lifecycle tied to calendarSyncEnabled state, starts/stops automatically when sync is toggled
   - **Manual Sync:** Available in Meetings tab (pull-to-refresh) and Settings tab ("Sync Now" button), validates sync is enabled before running
   - **Smart Filtering:** Excludes app's liturgical calendar from imports to prevent circular syncing
+  - **Universal Calendar Support:** Works with all calendar types on both platforms - iCloud, Google, Samsung Calendar, Xiaomi Mi Calendar, OnePlus Calendar, Outlook, Yahoo, Exchange, and local calendars
+  - **Platform-Specific Optimization:** iOS prefers iCloud sources, Android prefers Google accounts with fallback to local storage
   - **Error Handling:** Comprehensive try/catch with logging, retry budget prevents infinite retry loops, graceful degradation
 
 ### Platform Support

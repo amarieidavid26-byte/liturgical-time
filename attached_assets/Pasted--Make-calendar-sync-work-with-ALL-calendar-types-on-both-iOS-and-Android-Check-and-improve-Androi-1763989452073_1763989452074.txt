@@ -1,0 +1,80 @@
+"Make calendar sync work with ALL calendar types on both iOS and Android:
+
+"Check and improve Android calendar compatibility:
+
+In lib/calendar/calendarSyncService.ts, update the calendar filter to be more inclusive:
+
+// OLD CODE:
+const externalCalendars = calendars.filter(cal => 
+  cal.title !== 'Timpul Liturgic' && 
+  (cal.source.name === 'iCloud' || 
+   cal.source.name === 'Google' || 
+   cal.source.name === 'Default')
+);
+
+// NEW CODE - More Android-friendly:
+const externalCalendars = calendars.filter(cal => {
+  // Exclude our own calendar
+  if (cal.title === 'Timpul Liturgic') return false;
+  
+  // Include all calendars that allow modifications
+  if (!cal.allowsModifications) return false;
+  
+  // Include any calendar from these sources
+  const validSources = [
+    'iCloud',           // iOS
+    'Google',           // Google Calendar
+    'Default',          // Default system calendar
+    'Samsung',          // Samsung Calendar
+    'Mi Calendar',      // Xiaomi
+    'OnePlus',          // OnePlus
+    'Local',            // Local Android calendars
+    'com.android.calendar' // Stock Android
+  ];
+  
+  // If source name matches OR if it's a local account on Android
+  return validSources.includes(cal.source.name) || 
+         (Platform.OS === 'android' && cal.source.isLocalAccount);
+});
+
+Also add platform-specific calendar creation:
+
+static async getOrCreateOrthodoxCalendar(): Promise<string> {
+  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+  
+  // Platform-specific source selection
+  let calendarSource;
+  if (Platform.OS === 'ios') {
+    calendarSource = calendars.find(cal => cal.source.name === 'iCloud')?.source;
+  } else {
+    // Android - prefer Google account, fallback to local
+    calendarSource = calendars.find(cal => cal.source.name === 'Google')?.source ||
+                    { isLocalAccount: true, name: 'Timpul Liturgic', type: 'LOCAL' };
+  }
+  
+  // Create calendar with platform-appropriate settings
+  const calendarId = await Calendar.createCalendarAsync({
+    title: 'Timpul Liturgic',
+    color: Platform.OS === 'ios' ? '#800020' : '#800020FF', // Android needs alpha
+    entityType: Calendar.EntityTypes.EVENT,
+    sourceId: calendarSource?.id,
+    source: calendarSource,
+    name: 'ortodox',
+    ownerAccount: Platform.OS === 'android' ? 'liturgical.time@local' : 'personal',
+    accessLevel: Calendar.CalendarAccessLevel.OWNER,
+  });
+  
+  return calendarId;
+}"
+
+This will enable sync with:
+- All iOS calendars (iCloud, Google, Outlook, Yahoo)
+- All Android calendars (Google, Samsung, Xiaomi, OnePlus, etc.)
+- Multiple accounts on the same device
+- Both local and cloud calendars
+
+Test that it works by:
+1. Creating meetings syncs TO all calendars
+2. Events FROM any calendar import to app
+3. Edits sync both directions
+4. Deletes sync both directions"
