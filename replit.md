@@ -40,20 +40,21 @@ Preferred communication style: Simple, everyday language.
   - **Prayer Presets:** Quick-add templates for common Orthodox prayers (Morning Prayers, Evening Prayers, Akathist)
   - **Data Validation:** Robust validation for selectedDays arrays with deduplication and bounds checking
 - **Instant Bidirectional Calendar Sync:** Production-ready real-time synchronization with ALL native device calendars on iOS and Android. Supports iCloud, Google, Samsung, Xiaomi, OnePlus, Outlook, Yahoo, Exchange, and local calendars. Features include:
-  - **CalendarSyncController:** Smart polling with conditional intervals (60-120s), jitter/backoff, mutex for preventing overlapping syncs, retry budget with auto-disable after failures
-  - **Instant Push:** Debounced (1s) automatic sync when meetings are created/updated/deleted in app, integrated via dynamic imports in database layer
-  - **Instant Pull:** Triggered when app becomes active via AppState listener, smart duplicate detection comparing date + time overlap
-  - **Conflict Detection:** Timestamp-based detection with latest-wins resolution strategy, tracks sourceOfTruth field ('app', 'external', 'conflict')
-  - **External Event Tracking:** Database stores externalEventId, calendarSource, lastSynced, sourceOfTruth, createdAt, updatedAt for conflict resolution
-  - **Smart Polling:** Pauses when app is inactive, applies exponential backoff when no changes detected, resets interval when changes found
+  - **CalendarSyncService:** Class-based architecture with comprehensive calendar type detection (iCloud, Google, Samsung, Xiaomi, OnePlus, Outlook, Yahoo, Exchange, CalDAV, Nextcloud, ownCloud) and static singleton pattern
+  - **Instant Push:** 500ms debounced automatic sync when meetings are created/updated/deleted in app, persists calendar event IDs back to database for update/delete operations, integrated via dynamic imports in database layer
+  - **Instant Pull:** Triggered when app becomes active via AppState listener, fetches new external events and imports them with sourceOfTruth='external'
+  - **Duplicate Prevention:** Guards prevent re-pushing external events (sourceOfTruth='external' or has externalEventId) to avoid feedback loops and spurious duplicates
+  - **Event ID Persistence:** createMeeting and updateMeeting persist calendarEventId and lastSynced timestamps after instant push completes, ensuring native events remain addressable for later modifications
+  - **Real-Time Background Sync:** 30-second interval polling while app is open, checks for external changes (updates/deletions), pauses when app is inactive
+  - **External Event Tracking:** Database stores calendarEventId, externalEventId, calendarSource, lastSynced, sourceOfTruth ('app'|'external'), createdAt, updatedAt for conflict resolution
   - **SyncStatus UI Component:** Shows real-time sync state (syncing, success, error), last sync time with relative timestamps, manual sync button, retry on failure
-  - **State Management:** Zustand store tracks syncStatus (isSyncing, lastSyncAt, error, counts) and syncQueue for pending operations
-  - **Lifecycle Management:** Controller lifecycle tied to calendarSyncEnabled state, starts/stops automatically when sync is toggled
+  - **State Management:** Zustand store tracks syncStatus (isSyncing, lastSyncAt, error, counts) for UI reactivity
+  - **Lifecycle Management:** Real-time sync lifecycle tied to calendarSyncEnabled state, starts/stops automatically when sync is toggled, AppState listener for instant pull on app focus
   - **Manual Sync:** Available in Meetings tab (pull-to-refresh) and Settings tab ("Sync Now" button), validates sync is enabled before running
   - **Smart Filtering:** Excludes app's liturgical calendar from imports to prevent circular syncing
   - **Universal Calendar Support:** Works with all calendar types on both platforms - iCloud, Google, Samsung Calendar, Xiaomi Mi Calendar, OnePlus Calendar, Outlook, Yahoo, Exchange, and local calendars
-  - **Platform-Specific Optimization:** iOS prefers iCloud sources, Android prefers Google accounts with fallback to local storage
-  - **Error Handling:** Comprehensive try/catch with logging, retry budget prevents infinite retry loops, graceful degradation
+  - **Platform-Specific Optimization:** iOS prefers iCloud sources, Android intelligently falls back from Google → manufacturer calendars → local source
+  - **Error Handling:** Comprehensive try/catch with logging, graceful degradation for failed sync operations
 
 ### Platform Support
 - **Multi-Platform Rendering:** Supports iOS (SF Symbols), Android (Material Icons), and web (responsive layouts).
