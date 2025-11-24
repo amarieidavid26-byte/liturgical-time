@@ -168,8 +168,8 @@ export const createMeeting = async (meeting: Meeting): Promise<number> => {
   
   try {
     const result = await db.runAsync(
-      `INSERT INTO meetings (title, date, startTime, endTime, location, notes, calendarEventId, externalEventId, calendarSource, lastSynced, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      `INSERT INTO meetings (title, date, startTime, endTime, location, notes, calendarEventId, externalEventId, calendarSource, lastSynced, sourceOfTruth, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
       [
         meeting.title,
         meeting.date,
@@ -181,6 +181,7 @@ export const createMeeting = async (meeting: Meeting): Promise<number> => {
         meeting.externalEventId || null,
         meeting.calendarSource || null,
         meeting.lastSynced || null,
+        meeting.sourceOfTruth || 'app',
       ]
     );
     
@@ -188,7 +189,14 @@ export const createMeeting = async (meeting: Meeting): Promise<number> => {
     const createdMeeting = { ...meeting, id: meetingId };
     
     import('../calendar/instantSync').then(({ instantPushMeeting }) => {
-      instantPushMeeting(createdMeeting, 'create');
+      instantPushMeeting(createdMeeting, 'create').then((eventId) => {
+        if (eventId && !meeting.externalEventId) {
+          db?.runAsync(
+            'UPDATE meetings SET calendarEventId = ?, lastSynced = datetime(\'now\') WHERE id = ?',
+            [eventId, meetingId]
+          );
+        }
+      });
     });
     
     return meetingId;
@@ -205,7 +213,7 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
   try {
     await db.runAsync(
       `UPDATE meetings 
-       SET title = ?, date = ?, startTime = ?, endTime = ?, location = ?, notes = ?, calendarEventId = ?, externalEventId = ?, calendarSource = ?, lastSynced = ?, updatedAt = datetime('now')
+       SET title = ?, date = ?, startTime = ?, endTime = ?, location = ?, notes = ?, calendarEventId = ?, externalEventId = ?, calendarSource = ?, lastSynced = ?, sourceOfTruth = ?, updatedAt = datetime('now')
        WHERE id = ?`,
       [
         meeting.title,
@@ -218,12 +226,20 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
         meeting.externalEventId || null,
         meeting.calendarSource || null,
         meeting.lastSynced || null,
+        meeting.sourceOfTruth || 'app',
         meeting.id,
       ]
     );
     
     import('../calendar/instantSync').then(({ instantPushMeeting }) => {
-      instantPushMeeting(meeting, 'update');
+      instantPushMeeting(meeting, 'update').then((eventId) => {
+        if (eventId && !meeting.externalEventId && meeting.id) {
+          db?.runAsync(
+            'UPDATE meetings SET calendarEventId = ?, lastSynced = datetime(\'now\') WHERE id = ?',
+            [eventId, meeting.id]
+          );
+        }
+      });
     });
   } catch (error) {
     console.error('Error updating meeting:', error);

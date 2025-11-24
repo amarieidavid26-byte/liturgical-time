@@ -1,0 +1,342 @@
+"Fix and enhance calendar sync for INSTANT bidirectional synchronization with ALL calendar types:
+
+1. UPDATE lib/calendar/calendarSyncService.ts for universal compatibility:
+
+export class CalendarSyncService {
+  static syncInterval: any = null;
+  static orthodoxCalendarId: string | null = null;
+  
+  // UNIVERSAL CALENDAR DETECTION - Works with ALL calendar types
+  static async getExternalCalendarEvents(startDate: Date, endDate: Date): Promise<any[]> {
+    const hasPermission = await this.requestPermissions();
+    if (!hasPermission) return [];
+    
+    const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+    
+    // MORE INCLUSIVE - Support ALL calendar types
+    const externalCalendars = calendars.filter(cal => {
+      // Exclude our own calendar
+      if (cal.title === 'Timpul Liturgic') return false;
+      
+      // Include all calendars that allow modifications
+      if (!cal.allowsModifications) return false;
+      
+      // Include calendars from ALL sources
+      const validSources = [
+        'iCloud',              // Apple iCloud
+        'Google',              // Google Calendar
+        'Default',             // Default system calendar
+        'Samsung',             // Samsung Calendar
+        'Mi Calendar',         // Xiaomi
+        'OnePlus',            // OnePlus
+        'Local',              // Local Android calendars
+        'com.android.calendar', // Stock Android
+        'Outlook',            // Microsoft Outlook
+        'Exchange',           // Exchange/Office 365
+        'Yahoo',              // Yahoo Calendar
+        'AOL',                // AOL Calendar
+        'CalDAV',             // CalDAV servers
+        'Nextcloud',          // Nextcloud
+        'ownCloud'            // ownCloud
+      ];
+      
+      // Accept if source matches OR if it's a local account on Android
+      return validSources.some(src => cal.source.name?.includes(src)) || 
+             (Platform.OS === 'android' && cal.source.isLocalAccount) ||
+             cal.allowsModifications; // Fallback: any editable calendar
+    });
+    
+    console.log(`Found ${externalCalendars.length} external calendars to sync with`);
+    
+    const calendarIds = externalCalendars.map(cal => cal.id);
+    const events = await Calendar.getEventsAsync(calendarIds, startDate, endDate);
+    
+    return events.filter(event => 
+      !event.allDay && 
+      !event.title.includes('✝️') && 
+      !event.title.includes('📿') &&
+      !event.title.includes('💼') // Avoid reimporting our own exports
+    );
+  }
+  
+  // PLATFORM-SPECIFIC Orthodox calendar creation
+  static async getOrCreateOrthodoxCalendar(): Promise<string> {
+    if (this.orthodoxCalendarId) return this.orthodoxCalendarId;
+    
+    const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+    
+    // Check if our calendar already exists
+    const orthodoxCal = calendars.find(cal => cal.title === 'Timpul Liturgic');
+    if (orthodoxCal) {
+      this.orthodoxCalendarId = orthodoxCal.id;
+      return orthodoxCal.id;
+    }
+    
+    // Platform-specific source selection
+    let calendarSource;
+    if (Platform.OS === 'ios') {
+      // iOS - prefer iCloud
+      calendarSource = calendars.find(cal => cal.source.name === 'iCloud')?.source ||
+                      calendars.find(cal => cal.source.name === 'Default')?.source;
+    } else {
+      // Android - prefer Google account, fallback to local
+      calendarSource = calendars.find(cal => cal.source.name === 'Google')?.source ||
+                      calendars.find(cal => cal.source.type === 'com.google')?.source ||
+                      { isLocalAccount: true, name: 'Timpul Liturgic', type: 'LOCAL' };
+    }
+    
+    const calendarId = await Calendar.createCalendarAsync({
+      title: 'Timpul Liturgic',
+      color: Platform.OS === 'ios' ? '#800020' : '#800020FF', // Android needs alpha
+      entityType: Calendar.EntityTypes.EVENT,
+      sourceId: calendarSource?.id,
+      source: calendarSource,
+      name: 'timpul_liturgic',
+      ownerAccount: Platform.OS === 'android' ? 'liturgical.time@local' : 'personal',
+      accessLevel: Calendar.CalendarAccessLevel.OWNER,
+    });
+    
+    this.orthodoxCalendarId = calendarId;
+    console.log('Created Orthodox calendar:', calendarId);
+    return calendarId;
+  }
+  
+  // INSTANT PUSH - Immediately sync to calendar when meeting created/updated
+  static async instantPushToCalendar(meeting: Meeting): Promise<string | null> {
+    try {
+      console.log('⚡ Instant push starting for:', meeting.title);
+      
+      // Delete old event if exists
+      if (meeting.calendarEventId) {
+        try {
+          await Calendar.deleteEventAsync(meeting.calendarEventId);
+        } catch (e) {
+          console.log('Old event already deleted');
+        }
+      }
+      
+      // Create new event immediately
+      const calendarId = await this.getOrCreateOrthodoxCalendar();
+      const event = {
+        title: '💼 ' + meeting.title,
+        startDate: new Date(`${meeting.date}T${meeting.startTime}`),
+        endDate: new Date(`${meeting.date}T${meeting.endTime}`),
+        location: meeting.location || '',
+        notes: meeting.notes || 'Întâlnire - Timpul Liturgic',
+        alarms: [{ relativeOffset: -30 }],
+        timeZone: 'Europe/Bucharest',
+      };
+      
+      const eventId = await Calendar.createEventAsync(calendarId, event);
+      console.log('⚡ Instant push complete:', eventId);
+      return eventId;
+    } catch (error) {
+      console.error('Instant push failed:', error);
+      return null;
+    }
+  }
+  
+  // INSTANT PULL - Check for changes immediately
+  static async instantPullFromCalendar(): Promise<number> {
+    console.log('⚡ Instant pull starting...');
+    
+    try {
+      const startDate = new Date();
+      const endDate = addMonths(startDate, 3);
+      
+      // Get all external events
+      const externalEvents = await this.getExternalCalendarEvents(startDate, endDate);
+      
+      // Get existing meetings to check for duplicates
+      const existingMeetings = await getAllMeetings();
+      const existingExternalIds = existingMeetings
+        .map(m => m.externalEventId)
+        .filter(id => id);
+      
+      // Import only new events
+      const newEvents = externalEvents.filter(event => 
+        !existingExternalIds.includes(event.id) &&
+        !event.title.includes('Timpul Liturgic') // Don't reimport our own
+      );
+      
+      let imported = 0;
+      for (const event of newEvents) {
+        const meeting: Meeting = {
+          title: event.title.replace('💼 ', ''), // Remove our prefix if present
+          date: format(new Date(event.startDate), 'yyyy-MM-dd'),
+          startTime: format(new Date(event.startDate), 'HH:mm'),
+          endTime: format(new Date(event.endDate), 'HH:mm'),
+          location: event.location || '',
+          notes: event.notes || `Importat din ${event.organizer || 'Calendar'}`,
+          externalEventId: event.id,
+          calendarSource: event.calendar?.title || 'External Calendar'
+        };
+        
+        await createMeeting(meeting);
+        imported++;
+      }
+      
+      console.log(`⚡ Instant pull complete: ${imported} new meetings`);
+      return imported;
+    } catch (error) {
+      console.error('Instant pull failed:', error);
+      return 0;
+    }
+  }
+  
+  // REAL-TIME SYNC - Enable continuous background sync
+  static enableRealTimeSync(callback: () => void) {
+    // Clear any existing interval
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+    }
+    
+    // Sync every 30 seconds when app is active
+    this.syncInterval = setInterval(async () => {
+      console.log('🔄 Real-time sync check...');
+      
+      const imported = await this.instantPullFromCalendar();
+      const updated = await this.syncExternalChanges();
+      
+      if (imported > 0 || updated > 0) {
+        console.log(`✅ Real-time sync: ${imported} new, ${updated} updated`);
+        callback(); // Refresh UI
+      }
+    }, 30000); // Every 30 seconds
+  }
+  
+  // CHECK FOR EXTERNAL CHANGES to existing synced meetings
+  static async syncExternalChanges(): Promise<number> {
+    const meetings = await getAllMeetings();
+    const syncedMeetings = meetings.filter(m => m.externalEventId);
+    
+    let updated = 0;
+    for (const meeting of syncedMeetings) {
+      try {
+        const event = await Calendar.getEventAsync(meeting.externalEventId);
+        
+        if (!event) {
+          // Event deleted in external calendar
+          await deleteMeeting(meeting.id);
+          updated++;
+          continue;
+        }
+        
+        // Check if event was modified
+        const newDate = format(new Date(event.startDate), 'yyyy-MM-dd');
+        const newStartTime = format(new Date(event.startDate), 'HH:mm');
+        const newEndTime = format(new Date(event.endDate), 'HH:mm');
+        
+        if (newDate !== meeting.date || 
+            newStartTime !== meeting.startTime || 
+            newEndTime !== meeting.endTime ||
+            event.title !== '💼 ' + meeting.title) {
+          
+          await updateMeeting({
+            ...meeting,
+            title: event.title.replace('💼 ', ''),
+            date: newDate,
+            startTime: newStartTime,
+            endTime: newEndTime,
+            location: event.location || meeting.location
+          });
+          updated++;
+        }
+      } catch (error) {
+        console.log('Could not sync meeting:', meeting.id);
+      }
+    }
+    
+    return updated;
+  }
+}
+
+2. UPDATE app/_layout.tsx for instant sync on app focus:
+
+import { AppState } from 'react-native';
+
+// In your root component, add:
+useEffect(() => {
+  let syncTimeout: any;
+  
+  // INSTANT sync when app becomes active
+  const subscription = AppState.addEventListener('change', (nextAppState) => {
+    if (nextAppState === 'active' && calendarSyncEnabled) {
+      // Clear any pending sync
+      clearTimeout(syncTimeout);
+      
+      // Immediate sync - no delay
+      console.log('📱 App active - instant sync starting...');
+      
+      CalendarSyncService.instantPullFromCalendar().then(imported => {
+        if (imported > 0) {
+          getAllMeetings().then(setMeetings);
+          Toast.show(`📥 ${imported} întâlniri sincronizate`, {
+            duration: Toast.durations.SHORT,
+            position: Toast.positions.BOTTOM,
+          });
+        }
+      });
+      
+      // Schedule next sync
+      syncTimeout = setTimeout(() => {
+        CalendarSyncService.syncExternalChanges().then(updated => {
+          if (updated > 0) {
+            getAllMeetings().then(setMeetings);
+          }
+        });
+      }, 5000); // Check for updates 5 seconds after opening
+    }
+  });
+  
+  // Enable real-time background sync while app is open
+  if (calendarSyncEnabled) {
+    CalendarSyncService.enableRealTimeSync(() => {
+      getAllMeetings().then(setMeetings);
+    });
+  }
+  
+  return () => {
+    subscription.remove();
+    clearTimeout(syncTimeout);
+    if (CalendarSyncService.syncInterval) {
+      clearInterval(CalendarSyncService.syncInterval);
+    }
+  };
+}, [calendarSyncEnabled]);
+
+3. UPDATE meeting CRUD operations for instant sync:
+
+// In create meeting:
+const eventId = await CalendarSyncService.instantPushToCalendar(meeting);
+meeting.calendarEventId = eventId;
+
+// In update meeting:
+const eventId = await CalendarSyncService.instantPushToCalendar(meeting);
+meeting.calendarEventId = eventId;
+
+// In delete meeting:
+if (meeting.calendarEventId) {
+  await Calendar.deleteEventAsync(meeting.calendarEventId);
+}
+
+4. ADD visual sync status in Settings:
+
+<View style={styles.syncStatus}>
+  <Text style={styles.syncTitle}>Status Sincronizare</Text>
+  <Text style={styles.syncInfo}>
+    ✅ Sincronizare cu: {connectedCalendars.join(', ')}
+  </Text>
+  <Text style={styles.lastSync}>
+    Ultima sincronizare: {format(lastSync, 'HH:mm:ss')}
+  </Text>
+  {syncing && <ActivityIndicator />}
+</View>
+
+5. TEST all calendar types:
+✅ iOS: iCloud, Google, Outlook, Yahoo
+✅ Android: Google, Samsung, Xiaomi, OnePlus, Local
+✅ Create in app → instantly in all calendars
+✅ Create in any calendar → appears in app within 30 seconds
+✅ Edit anywhere → syncs everywhere
+✅ Delete anywhere → removes everywhere"
