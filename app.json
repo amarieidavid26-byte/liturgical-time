@@ -1,25 +1,28 @@
 {
   "expo": {
-    "name": "liturgical-time",
+    "name": "Timpul Liturgic",
     "slug": "liturgical-time",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "liturgicaltime",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F5F0E8"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.amariei26.liturgicaltime"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "backgroundColor": "#F5F0E8"
+      },
+      "package": "com.amariei26.liturgicaltime",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -29,10 +32,10 @@
     "plugins": [
       "expo-router",
       ["expo-calendar", {
-        "calendarPermission": "Liturgical Time needs calendar access to sync your meetings."
+        "calendarPermission": "Timpul Liturgic necesită acces la calendar pentru sincronizarea întâlnirilor."
       }],
       ["expo-splash-screen", {
-        "backgroundColor": "#ffffff",
+        "backgroundColor": "#F5F0E8",
         "image": "./assets/images/splash.png",
         "imageWidth": 200
       }]

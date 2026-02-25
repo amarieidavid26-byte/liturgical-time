@@ -8,11 +8,21 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Calendar, DateData } from 'react-native-calendars';
+import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parse } from 'date-fns';
+import { ro } from 'date-fns/locale';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+
+LocaleConfig.locales['ro'] = {
+  monthNames: ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'],
+  monthNamesShort: ['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'],
+  dayNames: ['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'],
+  dayNamesShort: ['Dum','Lun','Mar','Mie','Joi','Vin','Sâm'],
+  today: 'Astăzi',
+};
+LocaleConfig.defaultLocale = 'ro';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
 import { getOrthodoxEventsForDate, isFastingDay, formatJulianDisplay } from '@/lib/calendar/orthodoxCalendar';
@@ -182,7 +192,7 @@ export default function CalendarScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalDate}>{format(date, 'EEEE, MMMM d, yyyy')}</Text>
+              <Text style={styles.modalDate}>{format(date, 'EEEE, d MMMM yyyy', { locale: ro })}</Text>
               {julianDate && (
                 <Text style={styles.julianDate}>{julianDate}</Text>
               )}

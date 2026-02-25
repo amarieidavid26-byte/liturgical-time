@@ -30,7 +30,7 @@ export const getOrCreateAppCalendar = async (): Promise<string> => {
   if (Platform.OS === 'ios') {
     const defaultCalendar = await Calendar.getDefaultCalendarAsync();
     calendarId = await Calendar.createCalendarAsync({
-      title: 'Liturgical Time',
+      title: 'Timpul Liturgic',
       color: '#DAA520',
       entityType: Calendar.EntityTypes.EVENT,
       source: defaultCalendar.source,
@@ -40,12 +40,12 @@ export const getOrCreateAppCalendar = async (): Promise<string> => {
     });
   } else {
     calendarId = await Calendar.createCalendarAsync({
-      title: 'Liturgical Time',
+      title: 'Timpul Liturgic',
       color: '#DAA520',
       entityType: Calendar.EntityTypes.EVENT,
       source: {
         isLocalAccount: true,
-        name: 'Liturgical Time',
+        name: 'Timpul Liturgic',
         type: 'LOCAL' as any,
       },
       name: 'liturgicalTime',

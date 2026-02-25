@@ -66,7 +66,7 @@ export default {
     invalidTime: 'Invalid Time',
     endAfterStart: 'End time must be after start time.',
     schedulingConflict: 'Scheduling Conflict',
-    potentialConflict: 'Potential Conflict',
+    potentialConflict: 'Scheduling Conflict',
     overlapsWith: 'This meeting overlaps with:',
     saveAnyway: 'Save Anyway',
     saveFailed: 'Failed to save meeting.',
@@ -126,7 +126,7 @@ export default {
 
   // Onboarding
   onboarding: {
-    welcome: 'Welcome to Liturgical Time',
+    welcome: 'Welcome to Timpul Liturgic',
     welcomeSubtitle: 'Set up your parish information to help you avoid scheduling conflicts with church services.',
     parishQuestion: "What's your parish name?",
     parishPlaceholder: 'e.g., Holy Trinity Orthodox Church',

@@ -345,8 +345,8 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
           <View style={styles.aboutRow}>
-            <Text style={styles.aboutLabel}>Liturgical Time</Text>
-            <Text style={styles.aboutValue}>v2.0.0</Text>
+            <Text style={styles.aboutLabel}>Timpul Liturgic</Text>
+            <Text style={styles.aboutValue}>v2.1.0</Text>
           </View>
           <Text style={styles.aboutDescription}>
             {t('settings.aboutDescription')}

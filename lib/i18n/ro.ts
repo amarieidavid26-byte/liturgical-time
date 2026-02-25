@@ -12,7 +12,7 @@ export default {
     orthodoxCalendar: 'Calendar Ortodox',
     businessMeetings: 'Întâlniri de afaceri',
     noMeetings: 'Nicio întâlnire programată',
-    greatFeast: 'Praznic Mare',
+    greatFeast: 'Praznic Împărătesc',
     majorFeast: 'Sărbătoare Majoră',
     meeting: 'Întâlnire',
     conflict: 'Conflict',
@@ -66,7 +66,7 @@ export default {
     invalidTime: 'Oră Invalidă',
     endAfterStart: 'Ora de sfârșit trebuie să fie după ora de început.',
     schedulingConflict: 'Conflict de Programare',
-    potentialConflict: 'Conflict Potențial',
+    potentialConflict: 'Conflict de Programare',
     overlapsWith: 'Această întâlnire se suprapune cu:',
     saveAnyway: 'Salvează Oricum',
     saveFailed: 'Nu s-a putut salva întâlnirea.',
@@ -126,7 +126,7 @@ export default {
 
   // Onboarding
   onboarding: {
-    welcome: 'Bine ați venit la Liturgical Time',
+    welcome: 'Bine ați venit la Timpul Liturgic',
     welcomeSubtitle: 'Configurați informațiile parohiei pentru a evita conflictele de programare cu slujbele bisericești.',
     parishQuestion: 'Care este numele parohiei dumneavoastră?',
     parishPlaceholder: 'ex. Biserica Ortodoxă Sfânta Treime',

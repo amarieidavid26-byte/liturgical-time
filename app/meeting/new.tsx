@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parse } from 'date-fns';
+import { ro } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
@@ -145,7 +146,7 @@ export default function NewMeetingScreen() {
               onPress={() => setShowDatePicker(true)}
             >
               <Ionicons name="calendar-outline" size={20} color={Colors.warm.primary} />
-              <Text style={styles.pickerText}>{format(date, 'EEEE, MMMM d, yyyy')}</Text>
+              <Text style={styles.pickerText}>{format(date, 'EEEE, d MMMM yyyy', { locale: ro })}</Text>
             </TouchableOpacity>
             {showDatePicker && (
               <DateTimePicker

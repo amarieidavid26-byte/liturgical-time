@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { format, parse } from 'date-fns';
+import { ro } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
@@ -114,7 +115,7 @@ export default function MeetingsScreen() {
           <View>
             <Text style={styles.meetingTitle}>{item.title}</Text>
             <Text style={styles.meetingDate}>
-              {format(meetingDate, 'EEE, MMM d')} • {item.startTime} - {item.endTime}
+              {format(meetingDate, 'EEE, d MMM', { locale: ro })} • {item.startTime} - {item.endTime}
             </Text>
           </View>
           {conflicts.length > 0 && (

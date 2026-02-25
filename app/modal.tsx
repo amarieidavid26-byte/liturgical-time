@@ -6,8 +6,8 @@ import Colors from '@/constants/Colors';
 export default function ModalScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Liturgical Time</Text>
-      <Text style={styles.version}>v2.0.0</Text>
+      <Text style={styles.title}>Timpul Liturgic</Text>
+      <Text style={styles.version}>v2.1.0</Text>
       <View style={styles.separator} />
       <Text style={styles.description}>
         Un calendar ortodox pentru antreprenorii români.{'\n'}
