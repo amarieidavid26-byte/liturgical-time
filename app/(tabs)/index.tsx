@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,20 +6,27 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
-  Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { format, parse } from 'date-fns';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
-import { getOrthodoxEventsForDate, isFastingDay, getJulianDate, formatJulianDisplay } from '@/lib/calendar/orthodoxCalendar';
-import { detectMeetingConflicts, getConflictSummary } from '@/lib/calendar/conflictDetection';
-import { getMeetingsByDate } from '@/lib/database/sqlite';
+import { getOrthodoxEventsForDate, isFastingDay, formatJulianDisplay } from '@/lib/calendar/orthodoxCalendar';
+import { detectMeetingConflicts } from '@/lib/calendar/conflictDetection';
 import { Meeting, OrthodoxEvent } from '@/lib/types';
+
+const getFastingLabel = (type: string, t: (key: string) => string): string => {
+  switch (type) {
+    case 'lent': return t('calendar.fasting.lentLabel');
+    case 'strict': return t('calendar.fasting.strictLabel');
+    case 'regular': return t('calendar.fasting.regularLabel');
+    default: return '';
+  }
+};
 
 interface MarkedDate {
   marked?: boolean;
@@ -30,104 +37,89 @@ interface MarkedDate {
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const parishSettings = useAppStore((state) => state.parishSettings);
   const meetings = useAppStore((state) => state.meetings);
   const julianCalendarEnabled = useAppStore((state) => state.julianCalendarEnabled);
   const selectedDate = useAppStore((state) => state.selectedDate);
   const setSelectedDate = useAppStore((state) => state.setSelectedDate);
-  
+
   const [markedDates, setMarkedDates] = useState<{ [key: string]: MarkedDate }>({});
   const [dayModalVisible, setDayModalVisible] = useState(false);
   const [selectedDayEvents, setSelectedDayEvents] = useState<OrthodoxEvent[]>([]);
   const [selectedDayMeetings, setSelectedDayMeetings] = useState<Meeting[]>([]);
 
-  // Generate marked dates for the calendar
   useEffect(() => {
     const generateMarkedDates = () => {
       const marked: { [key: string]: MarkedDate } = {};
-      
-      // Get current month and adjacent months
       const today = new Date();
-      const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const endDate = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-      
-      // Iterate through dates to mark Orthodox events and meetings
+      const startDate = new Date(today.getFullYear(), 0, 1);
+      const endDate = new Date(today.getFullYear(), 11, 31);
+
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
         const dateString = format(d, 'yyyy-MM-dd');
         const dots: Array<{ color: string; key: string }> = [];
-        
-        // Check for Orthodox events
+
         const orthodoxEvents = getOrthodoxEventsForDate(d);
         if (orthodoxEvents.length > 0) {
           const hasGreatFeast = orthodoxEvents.some(e => e.level === 'great');
           const hasMajorFeast = orthodoxEvents.some(e => e.level === 'major');
-          
+
           if (hasGreatFeast) {
-            dots.push({ color: Colors.orthodox.gold, key: 'orthodox-great' });
+            dots.push({ color: Colors.warm.primary, key: 'orthodox-great' });
           } else if (hasMajorFeast) {
-            dots.push({ color: Colors.orthodox.royalBlue, key: 'orthodox-major' });
+            dots.push({ color: Colors.warm.accent, key: 'orthodox-major' });
           } else {
-            dots.push({ color: Colors.orthodox.purple, key: 'orthodox-minor' });
+            dots.push({ color: Colors.warm.fasting, key: 'orthodox-minor' });
           }
         }
-        
-        // Check for fasting
+
         const fastingType = isFastingDay(d);
         if (fastingType !== 'none') {
-          dots.push({ color: Colors.orthodox.burgundy, key: 'fasting' });
+          dots.push({ color: Colors.warm.secondary, key: 'fasting' });
         }
-        
-        // Check for meetings
+
         const dayMeetings = meetings.filter(m => m.date === dateString);
         if (dayMeetings.length > 0) {
-          dots.push({ color: Colors.orthodox.green, key: 'meeting' });
-          
-          // Check for conflicts
+          dots.push({ color: Colors.warm.green, key: 'meeting' });
+
           if (parishSettings) {
             const hasConflict = dayMeetings.some(meeting => {
               const conflicts = detectMeetingConflicts(meeting, parishSettings);
               return conflicts.length > 0;
             });
-            
             if (hasConflict) {
-              dots.push({ color: Colors.orthodox.red, key: 'conflict' });
+              dots.push({ color: Colors.warm.red, key: 'conflict' });
             }
           }
         }
-        
+
         if (dots.length > 0) {
           marked[dateString] = { dots };
         }
       }
-      
-      // Mark selected date
+
       if (selectedDate) {
         marked[selectedDate] = {
           ...marked[selectedDate],
           selected: true,
-          selectedColor: Colors.orthodox.royalBlue,
+          selectedColor: Colors.warm.secondary,
         };
       }
-      
+
       setMarkedDates(marked);
     };
-    
+
     generateMarkedDates();
   }, [meetings, selectedDate, parishSettings]);
 
   const handleDayPress = async (day: DateData) => {
     setSelectedDate(day.dateString);
     const date = parse(day.dateString, 'yyyy-MM-dd', new Date());
-    
-    // Get Orthodox events for this day
     const orthodoxEvents = getOrthodoxEventsForDate(date);
     setSelectedDayEvents(orthodoxEvents);
-    
-    // Get meetings for this day
     const dayMeetings = meetings.filter(m => m.date === day.dateString);
     setSelectedDayMeetings(dayMeetings);
-    
-    // Show day modal
     setDayModalVisible(true);
   };
 
@@ -146,13 +138,40 @@ export default function CalendarScreen() {
     });
   };
 
+  const getTodayHeaderInfo = (): string => {
+    const today = new Date();
+    const events = getOrthodoxEventsForDate(today);
+    const fasting = isFastingDay(today);
+    const parts: string[] = [];
+    if (events.length > 0) parts.push(events[0].name);
+    if (fasting !== 'none') parts.push(getFastingLabel(fasting, t));
+    return parts.length > 0 ? parts.join(' · ') : '';
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'great': return Colors.warm.primary;
+      case 'major': return Colors.warm.accent;
+      case 'minor': return Colors.warm.fasting;
+      default: return Colors.warm.divider;
+    }
+  };
+
+  const getFastingDescription = (type: string) => {
+    switch (type) {
+      case 'lent': return t('calendar.fasting.lent');
+      case 'strict': return t('calendar.fasting.strict');
+      case 'regular': return t('calendar.fasting.regular');
+      default: return t('calendar.fasting.label');
+    }
+  };
+
   const renderDayModal = () => {
     if (!selectedDate) return null;
-    
     const date = parse(selectedDate, 'yyyy-MM-dd', new Date());
     const fastingType = isFastingDay(date);
     const julianDate = julianCalendarEnabled ? formatJulianDisplay(date) : null;
-    
+
     return (
       <Modal
         visible={dayModalVisible}
@@ -171,15 +190,14 @@ export default function CalendarScreen() {
                 style={styles.closeButton}
                 onPress={() => setDayModalVisible(false)}
               >
-                <Ionicons name="close" size={24} color={Colors.orthodox.darkGray} />
+                <Ionicons name="close" size={24} color={Colors.warm.text} />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* Orthodox Events Section */}
               {selectedDayEvents.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Orthodox Calendar</Text>
+                  <Text style={styles.sectionTitle}>{t('calendar.orthodoxCalendar')}</Text>
                   {selectedDayEvents.map((event, index) => (
                     <View key={index} style={styles.eventCard}>
                       <View style={[styles.eventIndicator, { backgroundColor: getLevelColor(event.level) }]} />
@@ -190,7 +208,7 @@ export default function CalendarScreen() {
                         )}
                         {event.liturgyRequired && parishSettings && (
                           <Text style={styles.liturgyTime}>
-                            🕐 Liturgy at {parishSettings.sundayLiturgyTime}
+                            🕐 {t('calendar.liturgyAt')} {parishSettings.sundayLiturgyTime}
                           </Text>
                         )}
                       </View>
@@ -198,26 +216,24 @@ export default function CalendarScreen() {
                   ))}
                 </View>
               )}
-              
-              {/* Fasting Info */}
+
               {fastingType !== 'none' && (
                 <View style={styles.fastingInfo}>
-                  <Ionicons name="restaurant-outline" size={20} color={Colors.orthodox.burgundy} />
+                  <Ionicons name="restaurant-outline" size={20} color={Colors.warm.fasting} />
                   <Text style={styles.fastingText}>
                     {getFastingDescription(fastingType)}
                   </Text>
                 </View>
               )}
-              
-              {/* Meetings Section */}
+
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Business Meetings</Text>
+                  <Text style={styles.sectionTitle}>{t('calendar.businessMeetings')}</Text>
                   <TouchableOpacity style={styles.addButton} onPress={handleAddMeeting}>
-                    <Ionicons name="add-circle" size={24} color={Colors.orthodox.royalBlue} />
+                    <Ionicons name="add-circle" size={24} color={Colors.warm.primary} />
                   </TouchableOpacity>
                 </View>
-                
+
                 {selectedDayMeetings.length > 0 ? (
                   selectedDayMeetings.map((meeting) => {
                     const conflicts = parishSettings ? detectMeetingConflicts(meeting, parishSettings) : [];
@@ -239,7 +255,7 @@ export default function CalendarScreen() {
                           )}
                           {conflicts.length > 0 && (
                             <View style={styles.conflictWarning}>
-                              <Ionicons name="warning" size={16} color={Colors.orthodox.red} />
+                              <Ionicons name="warning" size={16} color={Colors.warm.red} />
                               <Text style={styles.conflictText}>
                                 {conflicts[0].orthodoxEvent.name}
                               </Text>
@@ -250,7 +266,7 @@ export default function CalendarScreen() {
                     );
                   })
                 ) : (
-                  <Text style={styles.noMeetingsText}>No meetings scheduled</Text>
+                  <Text style={styles.noMeetingsText}>{t('calendar.noMeetings')}</Text>
                 )}
               </View>
             </ScrollView>
@@ -260,59 +276,47 @@ export default function CalendarScreen() {
     );
   };
 
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'great': return Colors.orthodox.gold;
-      case 'major': return Colors.orthodox.royalBlue;
-      case 'minor': return Colors.orthodox.purple;
-      default: return Colors.orthodox.lightGray;
-    }
-  };
-
-  const getFastingDescription = (type: string) => {
-    switch (type) {
-      case 'lent': return 'Great Lent - Strict fasting';
-      case 'strict': return 'Strict fast day';
-      case 'regular': return 'Regular fast day (no meat, dairy, eggs)';
-      default: return 'Fasting day';
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.parishName}>{parishSettings?.parishName || 'Orthodox Calendar'}</Text>
+        <View style={styles.headerInfo}>
+          <Text style={styles.parishName}>{parishSettings?.parishName || t('calendar.orthodoxCalendar')}</Text>
+          {getTodayHeaderInfo() !== '' && (
+            <Text style={styles.headerFeastText} numberOfLines={1}>{getTodayHeaderInfo()}</Text>
+          )}
+        </View>
         <View style={styles.headerButtons}>
           {julianCalendarEnabled && (
             <View style={styles.julianIndicator}>
-              <Text style={styles.julianText}>Julian</Text>
+              <Text style={styles.julianText}>{t('calendar.julian')}</Text>
             </View>
           )}
           <TouchableOpacity onPress={() => router.push('/meeting/new')}>
-            <Ionicons name="add-circle" size={30} color={Colors.orthodox.royalBlue} />
+            <Ionicons name="add-circle" size={30} color={Colors.warm.primary} />
           </TouchableOpacity>
         </View>
       </View>
-      
+
       <Calendar
         style={styles.calendar}
         markedDates={markedDates}
         onDayPress={handleDayPress}
         markingType="multi-dot"
+        firstDay={1}
         theme={{
-          backgroundColor: Colors.orthodox.white,
-          calendarBackground: Colors.orthodox.white,
-          textSectionTitleColor: Colors.orthodox.darkGray,
-          selectedDayBackgroundColor: Colors.orthodox.royalBlue,
-          selectedDayTextColor: Colors.orthodox.white,
-          todayTextColor: Colors.orthodox.gold,
-          dayTextColor: Colors.orthodox.darkGray,
-          textDisabledColor: '#d9e1e8',
-          dotColor: Colors.orthodox.royalBlue,
-          selectedDotColor: Colors.orthodox.white,
-          arrowColor: Colors.orthodox.royalBlue,
-          monthTextColor: Colors.orthodox.darkGray,
-          indicatorColor: Colors.orthodox.royalBlue,
+          backgroundColor: Colors.warm.surface,
+          calendarBackground: Colors.warm.surface,
+          textSectionTitleColor: Colors.warm.textSecondary,
+          selectedDayBackgroundColor: Colors.warm.secondary,
+          selectedDayTextColor: '#FFFFFF',
+          todayTextColor: Colors.warm.today,
+          dayTextColor: Colors.warm.text,
+          textDisabledColor: Colors.warm.divider,
+          dotColor: Colors.warm.accent,
+          selectedDotColor: '#FFFFFF',
+          arrowColor: Colors.warm.primary,
+          monthTextColor: Colors.warm.text,
+          indicatorColor: Colors.warm.primary,
           textDayFontFamily: 'System',
           textMonthFontFamily: 'System',
           textDayHeaderFontFamily: 'System',
@@ -324,26 +328,26 @@ export default function CalendarScreen() {
           textDayHeaderFontSize: 14,
         }}
       />
-      
+
       <View style={styles.legend}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.orthodox.gold }]} />
-          <Text style={styles.legendText}>Great Feast</Text>
+          <View style={[styles.legendDot, { backgroundColor: Colors.warm.primary }]} />
+          <Text style={styles.legendText}>{t('calendar.greatFeast')}</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.orthodox.royalBlue }]} />
-          <Text style={styles.legendText}>Major Feast</Text>
+          <View style={[styles.legendDot, { backgroundColor: Colors.warm.accent }]} />
+          <Text style={styles.legendText}>{t('calendar.majorFeast')}</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.orthodox.green }]} />
-          <Text style={styles.legendText}>Meeting</Text>
+          <View style={[styles.legendDot, { backgroundColor: Colors.warm.green }]} />
+          <Text style={styles.legendText}>{t('calendar.meeting')}</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: Colors.orthodox.red }]} />
-          <Text style={styles.legendText}>Conflict</Text>
+          <View style={[styles.legendDot, { backgroundColor: Colors.warm.red }]} />
+          <Text style={styles.legendText}>{t('calendar.conflict')}</Text>
         </View>
       </View>
-      
+
       {renderDayModal()}
     </SafeAreaView>
   );
@@ -352,7 +356,7 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.warm.background,
   },
   header: {
     flexDirection: 'row',
@@ -361,12 +365,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.orthodox.lightGray,
+    borderBottomColor: Colors.warm.divider,
+  },
+  headerInfo: {
+    flex: 1,
+    marginRight: 10,
   },
   parishName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
+  },
+  headerFeastText: {
+    fontSize: 13,
+    color: Colors.warm.secondary,
+    marginTop: 2,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -374,13 +387,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   julianIndicator: {
-    backgroundColor: Colors.orthodox.purple,
+    backgroundColor: Colors.warm.fasting,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   julianText: {
-    color: Colors.orthodox.white,
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -394,7 +407,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: Colors.orthodox.lightGray,
+    borderTopColor: Colors.warm.divider,
   },
   legendItem: {
     flexDirection: 'row',
@@ -410,7 +423,7 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.textSecondary,
   },
   modalOverlay: {
     flex: 1,
@@ -418,7 +431,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.warm.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
@@ -426,16 +439,16 @@ const styles = StyleSheet.create({
   modalHeader: {
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.orthodox.lightGray,
+    borderBottomColor: Colors.warm.divider,
   },
   modalDate: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   julianDate: {
     fontSize: 14,
-    color: Colors.orthodox.purple,
+    color: Colors.warm.fasting,
     marginTop: 4,
   },
   closeButton: {
@@ -459,7 +472,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 10,
   },
   addButton: {
@@ -470,7 +483,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 10,
     padding: 10,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.background,
     borderRadius: 8,
   },
   eventIndicator: {
@@ -485,16 +498,16 @@ const styles = StyleSheet.create({
   eventName: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   eventNameEn: {
     fontSize: 12,
-    color: '#666',
+    color: Colors.warm.textSecondary,
     marginTop: 2,
   },
   liturgyTime: {
     fontSize: 12,
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.primary,
     marginTop: 4,
   },
   fastingInfo: {
@@ -508,12 +521,12 @@ const styles = StyleSheet.create({
   fastingText: {
     marginLeft: 10,
     fontSize: 14,
-    color: Colors.orthodox.burgundy,
+    color: Colors.warm.fasting,
   },
   meetingCard: {
     flexDirection: 'row',
     padding: 12,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.background,
     borderRadius: 8,
     marginBottom: 10,
   },
@@ -523,7 +536,7 @@ const styles = StyleSheet.create({
   meetingTimeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   meetingContent: {
     flex: 1,
@@ -531,11 +544,11 @@ const styles = StyleSheet.create({
   meetingTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   meetingLocation: {
     fontSize: 12,
-    color: '#666',
+    color: Colors.warm.textSecondary,
     marginTop: 2,
   },
   conflictWarning: {
@@ -548,12 +561,12 @@ const styles = StyleSheet.create({
   },
   conflictText: {
     fontSize: 11,
-    color: Colors.orthodox.red,
+    color: Colors.warm.red,
     marginLeft: 4,
   },
   noMeetingsText: {
     fontSize: 14,
-    color: '#999',
+    color: Colors.warm.textSecondary,
     fontStyle: 'italic',
     textAlign: 'center',
     padding: 20,

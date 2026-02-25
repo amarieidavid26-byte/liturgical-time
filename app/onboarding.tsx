@@ -14,7 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { saveParishSettings, setOnboarded, saveJulianEnabled } from '@/lib/utils/storage';
 import { useAppStore } from '@/lib/store/appStore';
@@ -22,10 +23,11 @@ import { ParishSettings } from '@/lib/types';
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const setParishSettingsStore = useAppStore((state) => state.setParishSettings);
   const setOnboardedStore = useAppStore((state) => state.setOnboarded);
   const setJulianCalendarEnabledStore = useAppStore((state) => state.setJulianCalendarEnabled);
-  
+
   const [step, setStep] = useState(0);
   const [parishName, setParishName] = useState('');
   const [sundayLiturgyTime, setSundayLiturgyTime] = useState(new Date(2024, 0, 1, 9, 0));
@@ -36,7 +38,7 @@ export default function OnboardingScreen() {
 
   const nextStep = () => {
     if (step === 0 && !parishName.trim()) {
-      Alert.alert('Required Field', 'Please enter your parish name.');
+      Alert.alert(t('onboarding.requiredField'), t('onboarding.enterParish'));
       return;
     }
     if (step < 3) {
@@ -59,20 +61,18 @@ export default function OnboardingScreen() {
         weekdayLiturgyTime: weekdayLiturgy ? format(weekdayLiturgy, 'HH:mm') : undefined,
         julianCalendarEnabled: julianEnabled,
       };
-      
-      // Save to storage and update store
+
       await saveParishSettings(settings);
       await setOnboarded(true);
       await saveJulianEnabled(julianEnabled);
-      
+
       setParishSettingsStore(settings);
       setOnboardedStore(true);
       setJulianCalendarEnabledStore(julianEnabled);
-      
-      // Navigate to main app
+
       router.replace('/(tabs)');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save settings. Please try again.');
+      Alert.alert(t('onboarding.error'), t('onboarding.saveFailed'));
       console.error('Onboarding error:', error);
     }
   };
@@ -82,35 +82,39 @@ export default function OnboardingScreen() {
       case 0:
         return (
           <View style={styles.stepContainer}>
-            <Ionicons name="home" size={64} color={Colors.orthodox.royalBlue} style={styles.icon} />
-            <Text style={styles.title}>Welcome to Liturgical Time</Text>
+            <View style={styles.iconCircle}>
+              <Ionicons name="sunny" size={48} color={Colors.warm.primary} />
+            </View>
+            <Text style={styles.title}>{t('onboarding.welcome')}</Text>
             <Text style={styles.subtitle}>
-              Let's set up your parish information to help you avoid scheduling conflicts with church services.
+              {t('onboarding.welcomeSubtitle')}
             </Text>
-            
+
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>What's your parish name?</Text>
+              <Text style={styles.label}>{t('onboarding.parishQuestion')}</Text>
               <TextInput
                 style={styles.input}
                 value={parishName}
                 onChangeText={setParishName}
-                placeholder="e.g., Holy Trinity Orthodox Church"
-                placeholderTextColor="#999"
+                placeholder={t('onboarding.parishPlaceholder')}
+                placeholderTextColor={Colors.warm.textSecondary}
               />
             </View>
           </View>
         );
-      
+
       case 1:
         return (
           <View style={styles.stepContainer}>
-            <Ionicons name="time" size={64} color={Colors.orthodox.gold} style={styles.icon} />
-            <Text style={styles.title}>Sunday Divine Liturgy</Text>
+            <View style={styles.iconCircle}>
+              <Ionicons name="time" size={48} color={Colors.warm.primary} />
+            </View>
+            <Text style={styles.title}>{t('onboarding.sundayLiturgy')}</Text>
             <Text style={styles.subtitle}>
-              When does Sunday Divine Liturgy typically start at {parishName || 'your parish'}?
+              {t('onboarding.sundaySubtitle')} {parishName || '...'}?
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.timeButton}
               onPress={() => setShowTimePicker('sunday')}
             >
@@ -118,7 +122,7 @@ export default function OnboardingScreen() {
                 {format(sundayLiturgyTime, 'h:mm a')}
               </Text>
             </TouchableOpacity>
-            
+
             {Platform.OS === 'ios' && showTimePicker === 'sunday' && (
               <DateTimePicker
                 value={sundayLiturgyTime}
@@ -129,7 +133,7 @@ export default function OnboardingScreen() {
                 }}
               />
             )}
-            
+
             {Platform.OS === 'android' && showTimePicker === 'sunday' && (
               <DateTimePicker
                 value={sundayLiturgyTime}
@@ -142,70 +146,72 @@ export default function OnboardingScreen() {
                 }}
               />
             )}
-            
+
             <Text style={styles.note}>
-              This will be used to detect conflicts with Sunday services and major feast days.
+              {t('onboarding.sundayNote')}
             </Text>
           </View>
         );
-      
+
       case 2:
         return (
           <View style={styles.stepContainer}>
-            <Ionicons name="moon" size={64} color={Colors.orthodox.burgundy} style={styles.icon} />
-            <Text style={styles.title}>Other Services (Optional)</Text>
+            <View style={styles.iconCircle}>
+              <Ionicons name="moon" size={48} color={Colors.warm.primary} />
+            </View>
+            <Text style={styles.title}>{t('onboarding.otherServices')}</Text>
             <Text style={styles.subtitle}>
-              Add other regular service times if you'd like conflict detection for them.
+              {t('onboarding.otherServicesSubtitle')}
             </Text>
-            
+
             <View style={styles.optionalServiceContainer}>
               <View style={styles.serviceRow}>
-                <Text style={styles.serviceLabel}>Saturday Vespers</Text>
+                <Text style={styles.serviceLabel}>{t('onboarding.saturdayVespers')}</Text>
                 {saturdayVespers ? (
                   <View style={styles.serviceTimeRow}>
                     <Text style={styles.serviceTime}>{format(saturdayVespers, 'h:mm a')}</Text>
                     <TouchableOpacity onPress={() => setSaturdayVespers(null)}>
-                      <Ionicons name="close-circle" size={24} color={Colors.orthodox.red} />
+                      <Ionicons name="close-circle" size={24} color={Colors.warm.red} />
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.addTimeButton}
                     onPress={() => {
                       setSaturdayVespers(new Date(2024, 0, 1, 17, 0));
                       setShowTimePicker('saturday');
                     }}
                   >
-                    <Ionicons name="add-circle" size={24} color={Colors.orthodox.royalBlue} />
-                    <Text style={styles.addTimeText}>Add Time</Text>
+                    <Ionicons name="add-circle" size={24} color={Colors.warm.primary} />
+                    <Text style={styles.addTimeText}>{t('onboarding.addTime')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
-              
+
               <View style={styles.serviceRow}>
-                <Text style={styles.serviceLabel}>Weekday Liturgy</Text>
+                <Text style={styles.serviceLabel}>{t('onboarding.weekdayLiturgy')}</Text>
                 {weekdayLiturgy ? (
                   <View style={styles.serviceTimeRow}>
                     <Text style={styles.serviceTime}>{format(weekdayLiturgy, 'h:mm a')}</Text>
                     <TouchableOpacity onPress={() => setWeekdayLiturgy(null)}>
-                      <Ionicons name="close-circle" size={24} color={Colors.orthodox.red} />
+                      <Ionicons name="close-circle" size={24} color={Colors.warm.red} />
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.addTimeButton}
                     onPress={() => {
                       setWeekdayLiturgy(new Date(2024, 0, 1, 7, 0));
                       setShowTimePicker('weekday');
                     }}
                   >
-                    <Ionicons name="add-circle" size={24} color={Colors.orthodox.royalBlue} />
-                    <Text style={styles.addTimeText}>Add Time</Text>
+                    <Ionicons name="add-circle" size={24} color={Colors.warm.primary} />
+                    <Text style={styles.addTimeText}>{t('onboarding.addTime')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
             </View>
-            
+
             {Platform.OS === 'ios' && showTimePicker === 'saturday' && saturdayVespers && (
               <DateTimePicker
                 value={saturdayVespers}
@@ -216,7 +222,7 @@ export default function OnboardingScreen() {
                 }}
               />
             )}
-            
+
             {Platform.OS === 'ios' && showTimePicker === 'weekday' && weekdayLiturgy && (
               <DateTimePicker
                 value={weekdayLiturgy}
@@ -227,7 +233,7 @@ export default function OnboardingScreen() {
                 }}
               />
             )}
-            
+
             {Platform.OS === 'android' && showTimePicker === 'saturday' && saturdayVespers && (
               <DateTimePicker
                 value={saturdayVespers}
@@ -240,7 +246,7 @@ export default function OnboardingScreen() {
                 }}
               />
             )}
-            
+
             {Platform.OS === 'android' && showTimePicker === 'weekday' && weekdayLiturgy && (
               <DateTimePicker
                 value={weekdayLiturgy}
@@ -255,32 +261,34 @@ export default function OnboardingScreen() {
             )}
           </View>
         );
-      
+
       case 3:
         return (
           <View style={styles.stepContainer}>
-            <Ionicons name="calendar" size={64} color={Colors.orthodox.purple} style={styles.icon} />
-            <Text style={styles.title}>Julian Calendar</Text>
+            <View style={styles.iconCircle}>
+              <Ionicons name="calendar" size={48} color={Colors.warm.primary} />
+            </View>
+            <Text style={styles.title}>{t('onboarding.julianCalendar')}</Text>
             <Text style={styles.subtitle}>
-              Would you like to see Mount Athos/Old Calendar dates (13 days behind)?
+              {t('onboarding.julianSubtitle')}
             </Text>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.optionButton, julianEnabled && styles.optionButtonActive]}
               onPress={() => setJulianEnabled(!julianEnabled)}
             >
-              <Ionicons 
-                name={julianEnabled ? 'checkbox' : 'square-outline'} 
-                size={24} 
-                color={julianEnabled ? Colors.orthodox.gold : '#999'} 
+              <Ionicons
+                name={julianEnabled ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={julianEnabled ? Colors.warm.primary : Colors.warm.textSecondary}
               />
               <Text style={[styles.optionText, julianEnabled && styles.optionTextActive]}>
-                Show Julian Calendar Dates
+                {t('onboarding.showJulian')}
               </Text>
             </TouchableOpacity>
-            
+
             <Text style={styles.note}>
-              You can toggle this later in settings. Julian dates will appear as ghosted dates on the calendar.
+              {t('onboarding.julianNote')}
             </Text>
           </View>
         );
@@ -289,46 +297,46 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.progressContainer}>
             {[0, 1, 2, 3].map((i) => (
-              <View 
+              <View
                 key={i}
                 style={[
-                  styles.progressDot, 
+                  styles.progressDot,
                   i === step && styles.progressDotActive,
                   i < step && styles.progressDotCompleted
-                ]} 
+                ]}
               />
             ))}
           </View>
-          
+
           {renderStep()}
-          
+
           <View style={styles.buttonContainer}>
             {step > 0 && (
               <TouchableOpacity style={styles.backButton} onPress={prevStep}>
-                <Ionicons name="arrow-back" size={20} color={Colors.orthodox.royalBlue} />
-                <Text style={styles.backButtonText}>Back</Text>
+                <Ionicons name="arrow-back" size={20} color={Colors.warm.secondary} />
+                <Text style={styles.backButtonText}>{t('onboarding.back')}</Text>
               </TouchableOpacity>
             )}
-            
+
             {step < 3 ? (
               <TouchableOpacity style={styles.nextButton} onPress={nextStep}>
-                <Text style={styles.nextButtonText}>Next</Text>
-                <Ionicons name="arrow-forward" size={20} color="white" />
+                <Text style={styles.nextButtonText}>{t('onboarding.next')}</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.completeButton} onPress={completeOnboarding}>
-                <Text style={styles.completeButtonText}>Get Started</Text>
-                <Ionicons name="checkmark-circle" size={20} color="white" />
+                <Text style={styles.completeButtonText}>{t('onboarding.getStarted')}</Text>
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </View>
@@ -341,7 +349,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.warm.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -357,14 +365,14 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: Colors.warm.divider,
   },
   progressDotActive: {
-    backgroundColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.warm.primary,
     width: 30,
   },
   progressDotCompleted: {
-    backgroundColor: Colors.orthodox.gold,
+    backgroundColor: Colors.warm.secondary,
   },
   stepContainer: {
     flex: 1,
@@ -372,19 +380,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 20,
   },
-  icon: {
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.warm.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 20,
+    borderWidth: 2,
+    borderColor: Colors.warm.primary,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 10,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: Colors.warm.textSecondary,
     textAlign: 'center',
     marginBottom: 30,
     paddingHorizontal: 20,
@@ -396,32 +412,35 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 10,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
     borderRadius: 10,
     padding: 15,
     fontSize: 16,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.surface,
+    color: Colors.warm.text,
   },
   timeButton: {
-    backgroundColor: Colors.orthodox.lightBlue,
+    backgroundColor: Colors.warm.surface,
     paddingVertical: 20,
     paddingHorizontal: 40,
     borderRadius: 10,
     marginVertical: 20,
+    borderWidth: 1,
+    borderColor: Colors.warm.primary,
   },
   timeButtonText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.primary,
   },
   note: {
     fontSize: 14,
-    color: '#999',
+    color: Colors.warm.textSecondary,
     textAlign: 'center',
     marginTop: 20,
     paddingHorizontal: 30,
@@ -436,11 +455,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: Colors.warm.divider,
   },
   serviceLabel: {
     fontSize: 16,
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   serviceTimeRow: {
     flexDirection: 'row',
@@ -450,7 +469,7 @@ const styles = StyleSheet.create({
   serviceTime: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.primary,
   },
   addTimeButton: {
     flexDirection: 'row',
@@ -459,7 +478,7 @@ const styles = StyleSheet.create({
   },
   addTimeText: {
     fontSize: 14,
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.primary,
   },
   optionButton: {
     flexDirection: 'row',
@@ -467,21 +486,22 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
     borderRadius: 10,
     marginTop: 20,
     width: '100%',
+    backgroundColor: Colors.warm.surface,
   },
   optionButtonActive: {
-    borderColor: Colors.orthodox.gold,
+    borderColor: Colors.warm.primary,
     backgroundColor: Colors.calendar.feastBackground,
   },
   optionText: {
     fontSize: 16,
-    color: '#999',
+    color: Colors.warm.textSecondary,
   },
   optionTextActive: {
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     fontWeight: '600',
   },
   buttonContainer: {
@@ -498,13 +518,13 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.secondary,
   },
   nextButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.warm.secondary,
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 25,
@@ -513,13 +533,13 @@ const styles = StyleSheet.create({
   nextButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
+    color: '#FFFFFF',
   },
   completeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: Colors.orthodox.gold,
+    backgroundColor: Colors.warm.primary,
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 25,
@@ -528,6 +548,6 @@ const styles = StyleSheet.create({
   completeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'white',
+    color: '#FFFFFF',
   },
 });

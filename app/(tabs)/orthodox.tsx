@@ -5,15 +5,48 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  SectionList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { format, addDays, parse } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
 import { getOrthodoxEventsForDate, isFastingDay, formatJulianDisplay } from '@/lib/calendar/orthodoxCalendar';
 import { OrthodoxEvent } from '@/lib/types';
+
+const ROMANIAN_MONTHS: { [key: string]: string } = {
+  '01': 'Ianuarie',
+  '02': 'Februarie',
+  '03': 'Martie',
+  '04': 'Aprilie',
+  '05': 'Mai',
+  '06': 'Iunie',
+  '07': 'Iulie',
+  '08': 'August',
+  '09': 'Septembrie',
+  '10': 'Octombrie',
+  '11': 'Noiembrie',
+  '12': 'Decembrie',
+};
+
+const ROMANIAN_DAYS: { [key: string]: string } = {
+  'Monday': 'Luni',
+  'Tuesday': 'Marți',
+  'Wednesday': 'Miercuri',
+  'Thursday': 'Joi',
+  'Friday': 'Vineri',
+  'Saturday': 'Sâmbătă',
+  'Sunday': 'Duminică',
+};
+
+const formatRomanianDate = (date: Date): string => {
+  const dayName = ROMANIAN_DAYS[format(date, 'EEEE')] || format(date, 'EEEE');
+  const day = format(date, 'd');
+  const monthNum = format(date, 'MM');
+  const monthName = ROMANIAN_MONTHS[monthNum] || format(date, 'MMMM');
+  return `${dayName}, ${day} ${monthName}`;
+};
 
 interface EventSection {
   title: string;
@@ -22,6 +55,7 @@ interface EventSection {
 
 export default function OrthodoxScreen() {
   const julianCalendarEnabled = useAppStore((state) => state.julianCalendarEnabled);
+  const { t } = useTranslation();
   const [sections, setSections] = useState<EventSection[]>([]);
   const [filterLevel, setFilterLevel] = useState<'all' | 'great' | 'major'>('all');
 
@@ -31,42 +65,41 @@ export default function OrthodoxScreen() {
 
   const generateUpcomingEvents = () => {
     const today = new Date();
-    const eventSections: EventSection[] = [];
-    const currentWeek: Array<{ date: Date; events: OrthodoxEvent[]; fasting: string }> = [];
-    const nextMonth: Array<{ date: Date; events: OrthodoxEvent[]; fasting: string }> = [];
-    
-    // Generate events for next 60 days
-    for (let i = 0; i < 60; i++) {
+    const monthBuckets: { [key: string]: Array<{ date: Date; events: OrthodoxEvent[]; fasting: string }> } = {};
+
+    for (let i = 0; i < 90; i++) {
       const date = addDays(today, i);
       const events = getOrthodoxEventsForDate(date);
       const fasting = isFastingDay(date);
-      
-      // Filter based on selected level
+
       let filteredEvents = events;
       if (filterLevel === 'great') {
         filteredEvents = events.filter(e => e.level === 'great');
       } else if (filterLevel === 'major') {
         filteredEvents = events.filter(e => e.level === 'great' || e.level === 'major');
       }
-      
+
       if (filteredEvents.length > 0 || (i < 7 && fasting !== 'none')) {
-        const eventData = { date, events: filteredEvents, fasting };
-        
-        if (i < 7) {
-          currentWeek.push(eventData);
-        } else if (i < 30) {
-          nextMonth.push(eventData);
+        const monthKey = format(date, 'yyyy-MM');
+        if (!monthBuckets[monthKey]) {
+          monthBuckets[monthKey] = [];
         }
+        monthBuckets[monthKey].push({ date, events: filteredEvents, fasting });
       }
     }
-    
-    if (currentWeek.length > 0) {
-      eventSections.push({ title: 'This Week', data: currentWeek });
+
+    const eventSections: EventSection[] = [];
+    const sortedMonths = Object.keys(monthBuckets).sort();
+    for (const monthKey of sortedMonths) {
+      const monthNum = monthKey.split('-')[1];
+      const year = monthKey.split('-')[0];
+      const monthName = ROMANIAN_MONTHS[monthNum] || monthNum;
+      eventSections.push({
+        title: `${monthName} ${year}`,
+        data: monthBuckets[monthKey],
+      });
     }
-    if (nextMonth.length > 0) {
-      eventSections.push({ title: 'Next Month', data: nextMonth });
-    }
-    
+
     setSections(eventSections);
   };
 
@@ -80,17 +113,17 @@ export default function OrthodoxScreen() {
 
   const getLevelColor = (level: string) => {
     switch (level) {
-      case 'great': return Colors.orthodox.gold;
-      case 'major': return Colors.orthodox.royalBlue;
-      default: return Colors.orthodox.purple;
+      case 'great': return Colors.warm.primary;
+      case 'major': return Colors.warm.accent;
+      default: return Colors.warm.fasting;
     }
   };
 
   const getFastingDescription = (type: string) => {
     switch (type) {
-      case 'lent': return '🍽️ Great Lent - Strict fasting';
-      case 'strict': return '🍽️ Strict fast day';
-      case 'regular': return '🍽️ Regular fast (no meat, dairy, eggs)';
+      case 'lent': return `🍽️ ${t('calendar.fasting.lent')}`;
+      case 'strict': return `🍽️ ${t('calendar.fasting.strict')}`;
+      case 'regular': return `🍽️ ${t('calendar.fasting.regular')}`;
       default: return '';
     }
   };
@@ -99,18 +132,26 @@ export default function OrthodoxScreen() {
     const { date, events, fasting } = item;
     const julianDate = julianCalendarEnabled ? formatJulianDisplay(date) : null;
     const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-    
+    const isSunday = date.getDay() === 0;
+
     return (
       <View style={[styles.dayCard, isToday && styles.todayCard]}>
         <View style={styles.dateHeader}>
-          <Text style={[styles.dateText, isToday && styles.todayText]}>
-            {format(date, 'EEEE, MMMM d')}
-          </Text>
+          <View style={styles.dateRow}>
+            <Text style={[styles.dateText, isToday && styles.todayText]}>
+              {formatRomanianDate(date)}
+            </Text>
+            {isSunday && (
+              <View style={styles.sundayBadge}>
+                <Text style={styles.sundayBadgeText}>DUM</Text>
+              </View>
+            )}
+          </View>
           {julianDate && (
             <Text style={styles.julianDate}>{julianDate}</Text>
           )}
         </View>
-        
+
         {events.map((event, index) => (
           <View key={index} style={styles.eventItem}>
             <Ionicons
@@ -124,12 +165,12 @@ export default function OrthodoxScreen() {
                 <Text style={styles.eventNameEn}>{event.nameEn}</Text>
               )}
               {event.liturgyRequired && (
-                <Text style={styles.liturgyNote}>🕐 Divine Liturgy</Text>
+                <Text style={styles.liturgyNote}>🕐 Sfânta Liturghie</Text>
               )}
             </View>
           </View>
         ))}
-        
+
         {fasting !== 'none' && (
           <Text style={styles.fastingNote}>{getFastingDescription(fasting)}</Text>
         )}
@@ -140,14 +181,14 @@ export default function OrthodoxScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Orthodox Calendar</Text>
+        <Text style={styles.headerTitle}>{t('calendar.orthodoxCalendar')}</Text>
         <View style={styles.filterContainer}>
           <TouchableOpacity
             style={[styles.filterButton, filterLevel === 'all' && styles.filterButtonActive]}
             onPress={() => setFilterLevel('all')}
           >
             <Text style={[styles.filterText, filterLevel === 'all' && styles.filterTextActive]}>
-              All
+              Toate
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -155,7 +196,7 @@ export default function OrthodoxScreen() {
             onPress={() => setFilterLevel('major')}
           >
             <Text style={[styles.filterText, filterLevel === 'major' && styles.filterTextActive]}>
-              Major
+              Majore
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -163,30 +204,29 @@ export default function OrthodoxScreen() {
             onPress={() => setFilterLevel('great')}
           >
             <Text style={[styles.filterText, filterLevel === 'great' && styles.filterTextActive]}>
-              Great
+              Mari
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-      
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Special Notices */}
         <View style={styles.noticeCard}>
-          <Ionicons name="information-circle" size={24} color={Colors.orthodox.royalBlue} />
+          <Ionicons name="information-circle" size={24} color={Colors.warm.primary} />
           <View style={styles.noticeContent}>
-            <Text style={styles.noticeTitle}>Current Liturgical Period</Text>
+            <Text style={styles.noticeTitle}>Perioada Liturgică</Text>
             <Text style={styles.noticeText}>
               {new Date().getMonth() === 11 || new Date().getMonth() === 0
-                ? 'Nativity Fast (November 15 - December 24)'
-                : new Date().getMonth() >= 2 && new Date().getMonth() <= 3
-                ? 'Great Lent Period'
+                ? 'Postul Crăciunului (15 Nov - 24 Dec)'
+                : new Date().getMonth() >= 1 && new Date().getMonth() <= 3
+                ? 'Perioada Postului Mare'
                 : new Date().getMonth() === 7
-                ? 'Dormition Fast (August 1-14)'
-                : 'Regular Period'}
+                ? 'Postul Adormirii Maicii Domnului (1-14 Aug)'
+                : 'Perioadă regulată'}
             </Text>
           </View>
         </View>
-        
+
         {sections.map((section, sectionIndex) => (
           <View key={sectionIndex}>
             <Text style={styles.sectionHeader}>{section.title}</Text>
@@ -197,10 +237,10 @@ export default function OrthodoxScreen() {
             ))}
           </View>
         ))}
-        
+
         {sections.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No events found for the selected filter</Text>
+            <Text style={styles.emptyText}>Nu s-au găsit evenimente pentru filtrul selectat</Text>
           </View>
         )}
       </ScrollView>
@@ -211,18 +251,19 @@ export default function OrthodoxScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.warm.background,
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.orthodox.lightGray,
+    borderBottomColor: Colors.warm.divider,
+    backgroundColor: Colors.warm.surface,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 10,
   },
   filterContainer: {
@@ -233,17 +274,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.background,
   },
   filterButtonActive: {
-    backgroundColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.warm.secondary,
   },
   filterText: {
     fontSize: 14,
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   filterTextActive: {
-    color: Colors.orthodox.white,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   scrollView: {
@@ -253,7 +294,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     margin: 20,
     padding: 15,
-    backgroundColor: Colors.calendar.sundayBackground,
+    backgroundColor: Colors.calendar.feastBackground,
     borderRadius: 12,
   },
   noticeContent: {
@@ -263,17 +304,17 @@ const styles = StyleSheet.create({
   noticeTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 4,
   },
   noticeText: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.warm.textSecondary,
   },
   sectionHeader: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.secondary,
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 10,
@@ -282,28 +323,46 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 15,
     padding: 15,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.surface,
     borderRadius: 12,
   },
   todayCard: {
     borderWidth: 2,
-    borderColor: Colors.orthodox.gold,
+    borderColor: Colors.warm.primary,
     backgroundColor: Colors.calendar.feastBackground,
   },
   dateHeader: {
     marginBottom: 10,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   dateText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
+    flexShrink: 1,
   },
   todayText: {
-    color: Colors.orthodox.gold,
+    color: Colors.warm.primary,
+  },
+  sundayBadge: {
+    backgroundColor: Colors.warm.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  sundayBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   julianDate: {
     fontSize: 12,
-    color: Colors.orthodox.purple,
+    color: Colors.warm.fasting,
     marginTop: 2,
   },
   eventItem: {
@@ -318,21 +377,21 @@ const styles = StyleSheet.create({
   eventName: {
     fontSize: 15,
     fontWeight: '500',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   eventNameEn: {
     fontSize: 13,
-    color: '#666',
+    color: Colors.warm.textSecondary,
     marginTop: 2,
   },
   liturgyNote: {
     fontSize: 12,
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.primary,
     marginTop: 4,
   },
   fastingNote: {
     fontSize: 13,
-    color: Colors.orthodox.burgundy,
+    color: Colors.warm.secondary,
     marginTop: 8,
     fontStyle: 'italic',
   },
@@ -344,6 +403,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#999',
+    color: Colors.warm.textSecondary,
   },
 });

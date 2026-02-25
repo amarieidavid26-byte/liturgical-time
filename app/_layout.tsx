@@ -1,13 +1,14 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import '@/lib/i18n';
 import { useColorScheme } from '@/components/useColorScheme';
-import { initDatabase } from '@/lib/database/sqlite';
-import { getAllMeetings } from '@/lib/database/sqlite';
+import { initDatabase, getAllMeetings } from '@/lib/database/sqlite';
+import { prefetchToday } from '@/lib/calendar/orthodoxCalendar';
 import { getParishSettings, isOnboarded, getJulianEnabled, getViewMode, getCalendarSyncEnabled } from '@/lib/utils/storage';
 import { useAppStore } from '@/lib/store/appStore';
 
@@ -29,7 +30,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
-  
+
   const setParishSettings = useAppStore((state) => state.setParishSettings);
   const setMeetings = useAppStore((state) => state.setMeetings);
   const setOnboarded = useAppStore((state) => state.setOnboarded);
@@ -51,9 +52,10 @@ export default function RootLayout() {
 
   const initializeApp = async () => {
     try {
-      // Initialize database
+      // Initialize database and prefetch today's calendar data
       await initDatabase();
-      
+      prefetchToday(); // Fire and forget — don't block init
+
       // Load saved data
       const [parish, onboarded, meetings, julianEnabled, viewMode, calendarSyncEnabled] = await Promise.all([
         getParishSettings(),
@@ -72,7 +74,7 @@ export default function RootLayout() {
       setViewMode(viewMode);
       setCalendarSyncEnabled(calendarSyncEnabled);
       setLoading(false);
-      
+
       // Hide splash screen
       await SplashScreen.hideAsync();
     } catch (error) {
@@ -91,27 +93,26 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const isOnboarded = useAppStore((state) => state.isOnboarded);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen 
-          name="(tabs)" 
+        <Stack.Screen
+          name="(tabs)"
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="onboarding" 
-          options={{ 
+        <Stack.Screen
+          name="onboarding"
+          options={{
             presentation: 'modal',
             headerShown: false,
-          }} 
+          }}
         />
         <Stack.Screen
           name="meeting/new"
           options={{
             presentation: 'modal',
-            title: 'New Meeting',
+            title: 'Întâlnire Nouă',
             headerShown: false,
           }}
         />
@@ -119,13 +120,13 @@ function RootLayoutNav() {
           name="meeting/[id]"
           options={{
             presentation: 'modal',
-            title: 'Edit Meeting',
+            title: 'Editare Întâlnire',
             headerShown: false,
           }}
         />
-        <Stack.Screen 
-          name="modal" 
-          options={{ presentation: 'modal', title: 'About' }} 
+        <Stack.Screen
+          name="modal"
+          options={{ presentation: 'modal', title: 'Despre' }}
         />
       </Stack>
     </ThemeProvider>

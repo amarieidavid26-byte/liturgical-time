@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
 import {
@@ -30,8 +31,10 @@ import {
   deleteMeetingFromCalendar,
 } from '@/lib/calendar/calendarSync';
 import { ParishSettings } from '@/lib/types';
+import i18n from '@/lib/i18n';
 
 export default function SettingsScreen() {
+  const { t } = useTranslation();
   const parishSettings = useAppStore((state) => state.parishSettings);
   const setParishSettingsStore = useAppStore((state) => state.setParishSettings);
   const julianCalendarEnabled = useAppStore((state) => state.julianCalendarEnabled);
@@ -44,11 +47,16 @@ export default function SettingsScreen() {
 
   const [parishName, setParishName] = useState(parishSettings?.parishName || '');
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [language, setLanguage] = useState<'ro' | 'en'>('ro');
+  const [language, setLanguage] = useState<'ro' | 'en'>(i18n.language as 'ro' | 'en');
 
   const liturgyTime = parishSettings?.sundayLiturgyTime || '09:00';
   const [hours, minutes] = liturgyTime.split(':').map(Number);
   const liturgyDate = new Date(2024, 0, 1, hours, minutes);
+
+  const handleLanguageChange = (lang: 'ro' | 'en') => {
+    setLanguage(lang);
+    i18n.changeLanguage(lang);
+  };
 
   const handleSaveParishName = async () => {
     if (!parishSettings) return;
@@ -56,9 +64,9 @@ export default function SettingsScreen() {
       const updated: ParishSettings = { ...parishSettings, parishName: parishName.trim() };
       await saveParishSettings(updated);
       setParishSettingsStore(updated);
-      Alert.alert('Saved', 'Parish name updated.');
+      Alert.alert(t('settings.saved'), t('settings.parishUpdated'));
     } catch {
-      Alert.alert('Error', 'Failed to save parish name.');
+      Alert.alert(t('settings.error'), t('settings.saveFailed'));
     }
   };
 
@@ -73,7 +81,7 @@ export default function SettingsScreen() {
       await saveParishSettings(updated);
       setParishSettingsStore(updated);
     } catch {
-      Alert.alert('Error', 'Failed to save liturgy time.');
+      Alert.alert(t('settings.error'), t('settings.saveFailed'));
     }
   };
 
@@ -87,19 +95,15 @@ export default function SettingsScreen() {
         setParishSettingsStore(updated);
       }
     } catch {
-      Alert.alert('Error', 'Failed to save preference.');
+      Alert.alert(t('settings.error'), t('settings.saveFailed'));
     }
   };
 
   const handleCalendarSyncToggle = async (value: boolean) => {
     if (value) {
-      // Turning ON: request permissions
       const granted = await requestCalendarPermissions();
       if (!granted) {
-        Alert.alert(
-          'Permission Required',
-          'Calendar access is needed to sync meetings. Please enable it in your device Settings.'
-        );
+        Alert.alert(t('settings.permissionRequired'), t('settings.calendarPermission'));
         return;
       }
 
@@ -108,38 +112,36 @@ export default function SettingsScreen() {
         await saveCalendarSyncEnabled(true);
         setCalendarSyncEnabledStore(true);
 
-        // Offer to sync existing meetings
         const meetings = await getAllMeetings();
         if (meetings.length > 0) {
           Alert.alert(
-            'Sync Existing Meetings',
-            `You have ${meetings.length} meeting${meetings.length > 1 ? 's' : ''}. Would you like to export them to your device calendar?`,
+            t('settings.syncExisting'),
+            t('settings.syncExistingMsg', { count: meetings.length }),
             [
-              { text: 'Not Now', style: 'cancel' },
+              { text: t('settings.notNow'), style: 'cancel' },
               {
-                text: 'Sync All',
+                text: t('settings.syncAll'),
                 onPress: async () => {
                   const count = await syncAllMeetingsToCalendar();
                   const allMeetings = await getAllMeetings();
                   setMeetings(allMeetings);
-                  Alert.alert('Done', `${count} meeting${count !== 1 ? 's' : ''} synced to calendar.`);
+                  Alert.alert(t('settings.done'), t('settings.syncedMsg', { count }));
                 },
               },
             ]
           );
         }
       } catch {
-        Alert.alert('Error', 'Failed to set up calendar sync.');
+        Alert.alert(t('settings.error'), t('settings.syncSetupFailed'));
       }
     } else {
-      // Turning OFF: confirm
       Alert.alert(
-        'Disable Calendar Sync',
-        'New meetings will no longer be exported to your device calendar. Existing calendar events will remain.',
+        t('settings.disableSync'),
+        t('settings.disableSyncMsg'),
         [
-          { text: 'Cancel', style: 'cancel' },
+          { text: t('settings.cancel'), style: 'cancel' },
           {
-            text: 'Disable',
+            text: t('settings.disable'),
             onPress: async () => {
               await saveCalendarSyncEnabled(false);
               setCalendarSyncEnabledStore(false);
@@ -152,16 +154,15 @@ export default function SettingsScreen() {
 
   const handleDeleteAllMeetings = () => {
     Alert.alert(
-      'Delete All Meetings',
-      'This will permanently delete all your meetings. This cannot be undone.',
+      t('settings.deleteAllTitle'),
+      t('settings.deleteAllMsg'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
         {
-          text: 'Delete All',
+          text: t('settings.deleteAll'),
           style: 'destructive',
           onPress: async () => {
             try {
-              // Delete calendar events if sync is enabled
               if (calendarSyncEnabled) {
                 const meetings = await getAllMeetings();
                 for (const m of meetings) {
@@ -172,9 +173,9 @@ export default function SettingsScreen() {
               }
               await clearAllMeetings();
               setMeetings([]);
-              Alert.alert('Done', 'All meetings have been deleted.');
+              Alert.alert(t('settings.done'), t('settings.allDeleted'));
             } catch {
-              Alert.alert('Error', 'Failed to delete meetings.');
+              Alert.alert(t('settings.error'), t('settings.deleteFailed'));
             }
           },
         },
@@ -184,12 +185,12 @@ export default function SettingsScreen() {
 
   const handleResetApp = () => {
     Alert.alert(
-      'Reset App',
-      'This will delete all data and return to the onboarding screen. This cannot be undone.',
+      t('settings.resetTitle'),
+      t('settings.resetMsg'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('settings.cancel'), style: 'cancel' },
         {
-          text: 'Reset',
+          text: t('settings.reset'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -198,7 +199,7 @@ export default function SettingsScreen() {
               reset();
               setOnboarded(false);
             } catch {
-              Alert.alert('Error', 'Failed to reset app.');
+              Alert.alert(t('settings.error'), t('settings.resetFailed'));
             }
           },
         },
@@ -209,32 +210,32 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
 
         {/* Parish Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Parish Settings</Text>
+          <Text style={styles.sectionTitle}>{t('settings.parishSettings')}</Text>
 
-          <Text style={styles.label}>Parish Name</Text>
+          <Text style={styles.label}>{t('settings.parishName')}</Text>
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
               value={parishName}
               onChangeText={setParishName}
-              placeholder="Enter parish name"
-              placeholderTextColor="#999"
+              placeholder={t('settings.parishPlaceholder')}
+              placeholderTextColor={Colors.warm.textSecondary}
             />
             <TouchableOpacity style={styles.saveButton} onPress={handleSaveParishName}>
-              <Ionicons name="checkmark" size={20} color={Colors.orthodox.white} />
+              <Ionicons name="checkmark" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.label}>Sunday Liturgy Time</Text>
+          <Text style={styles.label}>{t('settings.sundayLiturgy')}</Text>
           <TouchableOpacity
             style={styles.timeButton}
             onPress={() => setShowTimePicker(true)}
           >
-            <Ionicons name="time-outline" size={20} color={Colors.orthodox.royalBlue} />
+            <Ionicons name="time-outline" size={20} color={Colors.warm.primary} />
             <Text style={styles.timeButtonText}>{liturgyTime}</Text>
           </TouchableOpacity>
 
@@ -252,37 +253,37 @@ export default function SettingsScreen() {
               style={styles.doneButton}
               onPress={() => setShowTimePicker(false)}
             >
-              <Text style={styles.doneButtonText}>Done</Text>
+              <Text style={styles.doneButtonText}>{t('common.done')}</Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Calendar Preferences */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Calendar</Text>
+          <Text style={styles.sectionTitle}>{t('settings.calendarSection')}</Text>
 
           <View style={styles.row}>
             <View style={styles.rowLabel}>
-              <Ionicons name="calendar-outline" size={20} color={Colors.orthodox.purple} />
-              <Text style={styles.rowText}>Julian Calendar Dates</Text>
+              <Ionicons name="calendar-outline" size={20} color={Colors.warm.fasting} />
+              <Text style={styles.rowText}>{t('settings.julianDates')}</Text>
             </View>
             <Switch
               value={julianCalendarEnabled}
               onValueChange={handleJulianToggle}
-              trackColor={{ false: '#E0E0E0', true: Colors.orthodox.gold }}
-              thumbColor={Colors.orthodox.white}
+              trackColor={{ false: Colors.warm.divider, true: Colors.warm.primary }}
+              thumbColor="#FFFFFF"
             />
           </View>
 
           <View style={styles.row}>
             <View style={styles.rowLabel}>
-              <Ionicons name="language-outline" size={20} color={Colors.orthodox.royalBlue} />
-              <Text style={styles.rowText}>Language</Text>
+              <Ionicons name="language-outline" size={20} color={Colors.warm.accent} />
+              <Text style={styles.rowText}>{t('settings.language')}</Text>
             </View>
             <View style={styles.segmentedControl}>
               <TouchableOpacity
                 style={[styles.segment, language === 'ro' && styles.segmentActive]}
-                onPress={() => setLanguage('ro')}
+                onPress={() => handleLanguageChange('ro')}
               >
                 <Text style={[styles.segmentText, language === 'ro' && styles.segmentTextActive]}>
                   Română
@@ -290,7 +291,7 @@ export default function SettingsScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.segment, language === 'en' && styles.segmentActive]}
-                onPress={() => setLanguage('en')}
+                onPress={() => handleLanguageChange('en')}
               >
                 <Text style={[styles.segmentText, language === 'en' && styles.segmentTextActive]}>
                   English
@@ -302,54 +303,53 @@ export default function SettingsScreen() {
 
         {/* Calendar Sync */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Calendar Sync</Text>
+          <Text style={styles.sectionTitle}>{t('settings.calendarSync')}</Text>
           <View style={styles.row}>
             <View style={styles.rowLabel}>
-              <Ionicons name="sync-outline" size={20} color={calendarSyncEnabled ? Colors.orthodox.royalBlue : '#999'} />
+              <Ionicons name="sync-outline" size={20} color={calendarSyncEnabled ? Colors.warm.primary : Colors.warm.textSecondary} />
               <View>
-                <Text style={styles.rowText}>Sync with Device Calendar</Text>
+                <Text style={styles.rowText}>{t('settings.syncDevice')}</Text>
                 {calendarSyncEnabled && (
-                  <Text style={styles.syncActiveText}>Active</Text>
+                  <Text style={styles.syncActiveText}>{t('settings.active')}</Text>
                 )}
               </View>
             </View>
             <Switch
               value={calendarSyncEnabled}
               onValueChange={handleCalendarSyncToggle}
-              trackColor={{ false: '#E0E0E0', true: Colors.orthodox.royalBlue }}
-              thumbColor={Colors.orthodox.white}
+              trackColor={{ false: Colors.warm.divider, true: Colors.warm.primary }}
+              thumbColor="#FFFFFF"
             />
           </View>
         </View>
 
         {/* Data Management */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data Management</Text>
+          <Text style={styles.sectionTitle}>{t('settings.dataManagement')}</Text>
 
           <TouchableOpacity style={styles.dangerButton} onPress={handleDeleteAllMeetings}>
-            <Ionicons name="trash-outline" size={20} color={Colors.orthodox.red} />
-            <Text style={styles.dangerButtonText}>Delete All Meetings</Text>
+            <Ionicons name="trash-outline" size={20} color={Colors.warm.red} />
+            <Text style={styles.dangerButtonText}>{t('settings.deleteAllMeetings')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.dangerButton, { borderColor: Colors.orthodox.red }]}
+            style={[styles.dangerButton, { borderColor: Colors.warm.red }]}
             onPress={handleResetApp}
           >
-            <Ionicons name="refresh-outline" size={20} color={Colors.orthodox.red} />
-            <Text style={styles.dangerButtonText}>Reset App</Text>
+            <Ionicons name="refresh-outline" size={20} color={Colors.warm.red} />
+            <Text style={styles.dangerButtonText}>{t('settings.resetApp')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* About */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
+          <Text style={styles.sectionTitle}>{t('settings.about')}</Text>
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>Liturgical Time</Text>
             <Text style={styles.aboutValue}>v2.0.0</Text>
           </View>
           <Text style={styles.aboutDescription}>
-            An Orthodox calendar for Romanian entrepreneurs. Avoid scheduling conflicts with church
-            services and feast days.
+            {t('settings.aboutDescription')}
           </Text>
         </View>
 
@@ -362,7 +362,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.warm.background,
   },
   scrollView: {
     flex: 1,
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     paddingHorizontal: 20,
     paddingTop: 15,
     paddingBottom: 10,
@@ -379,12 +379,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.orthodox.lightGray,
+    borderBottomColor: Colors.warm.divider,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#999',
+    color: Colors.warm.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 15,
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 8,
     marginTop: 10,
   },
@@ -404,15 +404,15 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: Colors.orthodox.lightGray,
-    color: Colors.orthodox.darkGray,
+    backgroundColor: Colors.warm.surface,
+    color: Colors.warm.text,
   },
   saveButton: {
-    backgroundColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.warm.primary,
     width: 40,
     height: 40,
     borderRadius: 8,
@@ -424,26 +424,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 12,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
   },
   timeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.primary,
   },
   doneButton: {
     alignSelf: 'center',
     marginTop: 10,
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.warm.primary,
     borderRadius: 8,
   },
   doneButtonText: {
-    color: Colors.orthodox.white,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   row: {
@@ -460,32 +460,34 @@ const styles = StyleSheet.create({
   },
   rowText: {
     fontSize: 16,
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.surface,
     borderRadius: 8,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.warm.divider,
   },
   segment: {
     paddingHorizontal: 14,
     paddingVertical: 8,
   },
   segmentActive: {
-    backgroundColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.warm.secondary,
   },
   segmentText: {
     fontSize: 13,
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   segmentTextActive: {
-    color: Colors.orthodox.white,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   syncActiveText: {
     fontSize: 12,
-    color: '#4CAF50',
+    color: Colors.warm.green,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -495,13 +497,13 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
     borderRadius: 8,
     marginBottom: 10,
   },
   dangerButtonText: {
     fontSize: 16,
-    color: Colors.orthodox.red,
+    color: Colors.warm.red,
   },
   aboutRow: {
     flexDirection: 'row',
@@ -512,15 +514,15 @@ const styles = StyleSheet.create({
   aboutLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   aboutValue: {
     fontSize: 14,
-    color: '#999',
+    color: Colors.warm.textSecondary,
   },
   aboutDescription: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.warm.textSecondary,
     lineHeight: 20,
   },
 });

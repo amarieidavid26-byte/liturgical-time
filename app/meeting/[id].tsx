@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parse } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
 import {
@@ -30,6 +31,7 @@ import { Meeting } from '@/lib/types';
 
 export default function EditMeetingScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const parishSettings = useAppStore((state) => state.parishSettings);
   const calendarSyncEnabled = useAppStore((state) => state.calendarSyncEnabled);
@@ -57,7 +59,7 @@ export default function EditMeetingScreen() {
     try {
       const meeting = await getMeetingById(Number(id));
       if (!meeting) {
-        Alert.alert('Error', 'Meeting not found.');
+        Alert.alert(t('common.error'), t('meetingForm.notFound'));
         router.back();
         return;
       }
@@ -73,7 +75,7 @@ export default function EditMeetingScreen() {
       const [endH, endM] = meeting.endTime.split(':').map(Number);
       setEndTime(new Date(2024, 0, 1, endH, endM));
     } catch {
-      Alert.alert('Error', 'Failed to load meeting.');
+      Alert.alert(t('common.error'), t('meetingForm.loadFailed'));
       router.back();
     } finally {
       setLoading(false);
@@ -87,7 +89,7 @@ export default function EditMeetingScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert('Required Field', 'Please enter a meeting title.');
+      Alert.alert(t('meetingForm.requiredField'), t('meetingForm.enterTitle'));
       return;
     }
 
@@ -95,7 +97,7 @@ export default function EditMeetingScreen() {
     const endTimeStr = format(endTime, 'HH:mm');
 
     if (startTimeStr >= endTimeStr) {
-      Alert.alert('Invalid Time', 'End time must be after start time.');
+      Alert.alert(t('meetingForm.invalidTime'), t('meetingForm.endAfterStart'));
       return;
     }
 
@@ -109,7 +111,6 @@ export default function EditMeetingScreen() {
       notes: notes.trim() || undefined,
     };
 
-    // Check for conflicts
     if (parishSettings) {
       const conflicts = detectMeetingConflicts(meeting, parishSettings);
       if (conflicts.length > 0) {
@@ -118,11 +119,11 @@ export default function EditMeetingScreen() {
 
         const result = await new Promise<boolean>((resolve) => {
           Alert.alert(
-            highSeverity ? 'Scheduling Conflict' : 'Potential Conflict',
-            `This meeting overlaps with: ${conflictNames}\n\nDo you still want to save it?`,
+            highSeverity ? t('meetingForm.schedulingConflict') : t('meetingForm.potentialConflict'),
+            `${t('meetingForm.overlapsWith')} ${conflictNames}\n\n`,
             [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Save Anyway', onPress: () => resolve(true) },
+              { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+              { text: t('meetingForm.saveAnyway'), onPress: () => resolve(true) },
             ]
           );
         });
@@ -135,7 +136,6 @@ export default function EditMeetingScreen() {
     try {
       await updateMeeting(meeting);
       if (calendarSyncEnabled) {
-        // Reload from DB to get current calendarEventId
         const freshMeeting = await getMeetingById(Number(id));
         if (freshMeeting) {
           await exportMeetingToCalendar(freshMeeting);
@@ -144,19 +144,19 @@ export default function EditMeetingScreen() {
       await refreshMeetings();
       router.back();
     } catch {
-      Alert.alert('Error', 'Failed to update meeting.');
+      Alert.alert(t('common.error'), t('meetingForm.updateFailed'));
       setSaving(false);
     }
   };
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Meeting',
-      `Are you sure you want to delete "${title}"?`,
+      t('meetingForm.deleteMeeting'),
+      `${t('meetingForm.deleteConfirm')} "${title}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -170,7 +170,7 @@ export default function EditMeetingScreen() {
               await refreshMeetings();
               router.back();
             } catch {
-              Alert.alert('Error', 'Failed to delete meeting.');
+              Alert.alert(t('common.error'), t('meetingForm.deleteFailed'));
             }
           },
         },
@@ -182,7 +182,7 @@ export default function EditMeetingScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.orthodox.royalBlue} />
+          <ActivityIndicator size="large" color={Colors.warm.primary} />
         </View>
       </SafeAreaView>
     );
@@ -197,36 +197,34 @@ export default function EditMeetingScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="close" size={28} color={Colors.orthodox.darkGray} />
+              <Ionicons name="close" size={28} color={Colors.warm.text} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Edit Meeting</Text>
+            <Text style={styles.headerTitle}>{t('meetingForm.editMeeting')}</Text>
             <TouchableOpacity onPress={handleSave} disabled={saving}>
               <Text style={[styles.saveText, saving && { opacity: 0.5 }]}>
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? t('meetingForm.saving') : t('meetingForm.save')}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Title */}
           <View style={styles.field}>
-            <Text style={styles.label}>Title *</Text>
+            <Text style={styles.label}>{t('meetingForm.titleLabel')}</Text>
             <TextInput
               style={styles.input}
               value={title}
               onChangeText={setTitle}
-              placeholder="Meeting title"
-              placeholderTextColor="#999"
+              placeholder={t('meetingForm.titlePlaceholder')}
+              placeholderTextColor={Colors.warm.textSecondary}
             />
           </View>
 
-          {/* Date */}
           <View style={styles.field}>
-            <Text style={styles.label}>Date *</Text>
+            <Text style={styles.label}>{t('meetingForm.dateLabel')}</Text>
             <TouchableOpacity
               style={styles.pickerButton}
               onPress={() => setShowDatePicker(true)}
             >
-              <Ionicons name="calendar-outline" size={20} color={Colors.orthodox.royalBlue} />
+              <Ionicons name="calendar-outline" size={20} color={Colors.warm.primary} />
               <Text style={styles.pickerText}>{format(date, 'EEEE, MMMM d, yyyy')}</Text>
             </TouchableOpacity>
             {showDatePicker && (
@@ -238,6 +236,7 @@ export default function EditMeetingScreen() {
                   if (Platform.OS === 'android') setShowDatePicker(false);
                   if (d) setDate(d);
                 }}
+                textColor={Colors.warm.text}
               />
             )}
             {Platform.OS === 'ios' && showDatePicker && (
@@ -245,20 +244,19 @@ export default function EditMeetingScreen() {
                 style={styles.doneButton}
                 onPress={() => setShowDatePicker(false)}
               >
-                <Text style={styles.doneButtonText}>Done</Text>
+                <Text style={styles.doneButtonText}>{t('common.done')}</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Start Time */}
           <View style={styles.timeRow}>
             <View style={styles.timeField}>
-              <Text style={styles.label}>Start Time *</Text>
+              <Text style={styles.label}>{t('meetingForm.startTimeLabel')}</Text>
               <TouchableOpacity
                 style={styles.pickerButton}
                 onPress={() => setShowStartPicker(true)}
               >
-                <Ionicons name="time-outline" size={20} color={Colors.orthodox.royalBlue} />
+                <Ionicons name="time-outline" size={20} color={Colors.warm.primary} />
                 <Text style={styles.pickerText}>{format(startTime, 'h:mm a')}</Text>
               </TouchableOpacity>
               {showStartPicker && (
@@ -270,6 +268,7 @@ export default function EditMeetingScreen() {
                     if (Platform.OS === 'android') setShowStartPicker(false);
                     if (d) setStartTime(d);
                   }}
+                  textColor={Colors.warm.text}
                 />
               )}
               {Platform.OS === 'ios' && showStartPicker && (
@@ -277,18 +276,18 @@ export default function EditMeetingScreen() {
                   style={styles.doneButton}
                   onPress={() => setShowStartPicker(false)}
                 >
-                  <Text style={styles.doneButtonText}>Done</Text>
+                  <Text style={styles.doneButtonText}>{t('common.done')}</Text>
                 </TouchableOpacity>
               )}
             </View>
 
             <View style={styles.timeField}>
-              <Text style={styles.label}>End Time *</Text>
+              <Text style={styles.label}>{t('meetingForm.endTimeLabel')}</Text>
               <TouchableOpacity
                 style={styles.pickerButton}
                 onPress={() => setShowEndPicker(true)}
               >
-                <Ionicons name="time-outline" size={20} color={Colors.orthodox.royalBlue} />
+                <Ionicons name="time-outline" size={20} color={Colors.warm.primary} />
                 <Text style={styles.pickerText}>{format(endTime, 'h:mm a')}</Text>
               </TouchableOpacity>
               {showEndPicker && (
@@ -300,6 +299,7 @@ export default function EditMeetingScreen() {
                     if (Platform.OS === 'android') setShowEndPicker(false);
                     if (d) setEndTime(d);
                   }}
+                  textColor={Colors.warm.text}
                 />
               )}
               {Platform.OS === 'ios' && showEndPicker && (
@@ -307,44 +307,41 @@ export default function EditMeetingScreen() {
                   style={styles.doneButton}
                   onPress={() => setShowEndPicker(false)}
                 >
-                  <Text style={styles.doneButtonText}>Done</Text>
+                  <Text style={styles.doneButtonText}>{t('common.done')}</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
-          {/* Location */}
           <View style={styles.field}>
-            <Text style={styles.label}>Location</Text>
+            <Text style={styles.label}>{t('meetingForm.locationLabel')}</Text>
             <TextInput
               style={styles.input}
               value={location}
               onChangeText={setLocation}
-              placeholder="Meeting location"
-              placeholderTextColor="#999"
+              placeholder={t('meetingForm.locationPlaceholder')}
+              placeholderTextColor={Colors.warm.textSecondary}
             />
           </View>
 
-          {/* Notes */}
           <View style={styles.field}>
-            <Text style={styles.label}>Notes</Text>
+            <Text style={styles.label}>{t('meetingForm.notesLabel')}</Text>
             <TextInput
               style={[styles.input, styles.notesInput]}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Additional notes"
-              placeholderTextColor="#999"
+              placeholder={t('meetingForm.notesPlaceholder')}
+              placeholderTextColor={Colors.warm.textSecondary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
             />
           </View>
 
-          {/* Delete Button */}
           <View style={styles.deleteSection}>
             <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-              <Ionicons name="trash-outline" size={20} color={Colors.orthodox.red} />
-              <Text style={styles.deleteButtonText}>Delete Meeting</Text>
+              <Ionicons name="trash-outline" size={20} color={Colors.warm.red} />
+              <Text style={styles.deleteButtonText}>{t('meetingForm.deleteMeeting')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -358,7 +355,7 @@ export default function EditMeetingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.warm.background,
   },
   loadingContainer: {
     flex: 1,
@@ -375,17 +372,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.orthodox.lightGray,
+    borderBottomColor: Colors.warm.divider,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.primary,
   },
   field: {
     paddingHorizontal: 20,
@@ -394,17 +391,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: Colors.orthodox.lightGray,
-    color: Colors.orthodox.darkGray,
+    backgroundColor: Colors.warm.surface,
+    color: Colors.warm.text,
   },
   notesInput: {
     minHeight: 100,
@@ -415,14 +412,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 12,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
   },
   pickerText: {
     fontSize: 16,
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   timeRow: {
     flexDirection: 'row',
@@ -438,11 +435,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.warm.primary,
     borderRadius: 8,
   },
   doneButtonText: {
-    color: Colors.orthodox.white,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   deleteSection: {
@@ -456,12 +453,12 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 14,
     borderWidth: 1,
-    borderColor: Colors.orthodox.red,
+    borderColor: Colors.warm.red,
     borderRadius: 8,
   },
   deleteButtonText: {
     fontSize: 16,
-    color: Colors.orthodox.red,
+    color: Colors.warm.red,
     fontWeight: '500',
   },
 });

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parse } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
 import { addMeeting, getAllMeetings } from '@/lib/database/sqlite';
@@ -24,6 +25,7 @@ import { Meeting } from '@/lib/types';
 
 export default function NewMeetingScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ date?: string }>();
   const parishSettings = useAppStore((state) => state.parishSettings);
   const calendarSyncEnabled = useAppStore((state) => state.calendarSyncEnabled);
@@ -47,7 +49,7 @@ export default function NewMeetingScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert('Required Field', 'Please enter a meeting title.');
+      Alert.alert(t('meetingForm.requiredField'), t('meetingForm.enterTitle'));
       return;
     }
 
@@ -55,7 +57,7 @@ export default function NewMeetingScreen() {
     const endTimeStr = format(endTime, 'HH:mm');
 
     if (startTimeStr >= endTimeStr) {
-      Alert.alert('Invalid Time', 'End time must be after start time.');
+      Alert.alert(t('meetingForm.invalidTime'), t('meetingForm.endAfterStart'));
       return;
     }
 
@@ -68,7 +70,6 @@ export default function NewMeetingScreen() {
       notes: notes.trim() || undefined,
     };
 
-    // Check for conflicts before saving
     if (parishSettings) {
       const tempMeeting: Meeting = { ...meeting, id: 0 };
       const conflicts = detectMeetingConflicts(tempMeeting, parishSettings);
@@ -79,11 +80,11 @@ export default function NewMeetingScreen() {
 
         const result = await new Promise<boolean>((resolve) => {
           Alert.alert(
-            highSeverity ? 'Scheduling Conflict' : 'Potential Conflict',
-            `This meeting overlaps with: ${conflictNames}\n\nDo you still want to save it?`,
+            highSeverity ? t('meetingForm.schedulingConflict') : t('meetingForm.potentialConflict'),
+            `${t('meetingForm.overlapsWith')} ${conflictNames}\n\n`,
             [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Save Anyway', onPress: () => resolve(true) },
+              { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+              { text: t('meetingForm.saveAnyway'), onPress: () => resolve(true) },
             ]
           );
         });
@@ -102,7 +103,7 @@ export default function NewMeetingScreen() {
       setMeetings(allMeetings);
       router.back();
     } catch {
-      Alert.alert('Error', 'Failed to save meeting.');
+      Alert.alert(t('common.error'), t('meetingForm.saveFailed'));
       setSaving(false);
     }
   };
@@ -116,36 +117,34 @@ export default function NewMeetingScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="close" size={28} color={Colors.orthodox.darkGray} />
+              <Ionicons name="close" size={28} color={Colors.warm.text} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>New Meeting</Text>
+            <Text style={styles.headerTitle}>{t('meetingForm.newMeeting')}</Text>
             <TouchableOpacity onPress={handleSave} disabled={saving}>
               <Text style={[styles.saveText, saving && { opacity: 0.5 }]}>
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? t('meetingForm.saving') : t('meetingForm.save')}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Title */}
           <View style={styles.field}>
-            <Text style={styles.label}>Title *</Text>
+            <Text style={styles.label}>{t('meetingForm.titleLabel')}</Text>
             <TextInput
               style={styles.input}
               value={title}
               onChangeText={setTitle}
-              placeholder="Meeting title"
-              placeholderTextColor="#999"
+              placeholder={t('meetingForm.titlePlaceholder')}
+              placeholderTextColor={Colors.warm.textSecondary}
             />
           </View>
 
-          {/* Date */}
           <View style={styles.field}>
-            <Text style={styles.label}>Date *</Text>
+            <Text style={styles.label}>{t('meetingForm.dateLabel')}</Text>
             <TouchableOpacity
               style={styles.pickerButton}
               onPress={() => setShowDatePicker(true)}
             >
-              <Ionicons name="calendar-outline" size={20} color={Colors.orthodox.royalBlue} />
+              <Ionicons name="calendar-outline" size={20} color={Colors.warm.primary} />
               <Text style={styles.pickerText}>{format(date, 'EEEE, MMMM d, yyyy')}</Text>
             </TouchableOpacity>
             {showDatePicker && (
@@ -157,6 +156,7 @@ export default function NewMeetingScreen() {
                   if (Platform.OS === 'android') setShowDatePicker(false);
                   if (d) setDate(d);
                 }}
+                textColor={Colors.warm.text}
               />
             )}
             {Platform.OS === 'ios' && showDatePicker && (
@@ -164,20 +164,19 @@ export default function NewMeetingScreen() {
                 style={styles.doneButton}
                 onPress={() => setShowDatePicker(false)}
               >
-                <Text style={styles.doneButtonText}>Done</Text>
+                <Text style={styles.doneButtonText}>{t('common.done')}</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Start Time */}
           <View style={styles.timeRow}>
             <View style={styles.timeField}>
-              <Text style={styles.label}>Start Time *</Text>
+              <Text style={styles.label}>{t('meetingForm.startTimeLabel')}</Text>
               <TouchableOpacity
                 style={styles.pickerButton}
                 onPress={() => setShowStartPicker(true)}
               >
-                <Ionicons name="time-outline" size={20} color={Colors.orthodox.royalBlue} />
+                <Ionicons name="time-outline" size={20} color={Colors.warm.primary} />
                 <Text style={styles.pickerText}>{format(startTime, 'h:mm a')}</Text>
               </TouchableOpacity>
               {showStartPicker && (
@@ -189,6 +188,7 @@ export default function NewMeetingScreen() {
                     if (Platform.OS === 'android') setShowStartPicker(false);
                     if (d) setStartTime(d);
                   }}
+                  textColor={Colors.warm.text}
                 />
               )}
               {Platform.OS === 'ios' && showStartPicker && (
@@ -196,18 +196,18 @@ export default function NewMeetingScreen() {
                   style={styles.doneButton}
                   onPress={() => setShowStartPicker(false)}
                 >
-                  <Text style={styles.doneButtonText}>Done</Text>
+                  <Text style={styles.doneButtonText}>{t('common.done')}</Text>
                 </TouchableOpacity>
               )}
             </View>
 
             <View style={styles.timeField}>
-              <Text style={styles.label}>End Time *</Text>
+              <Text style={styles.label}>{t('meetingForm.endTimeLabel')}</Text>
               <TouchableOpacity
                 style={styles.pickerButton}
                 onPress={() => setShowEndPicker(true)}
               >
-                <Ionicons name="time-outline" size={20} color={Colors.orthodox.royalBlue} />
+                <Ionicons name="time-outline" size={20} color={Colors.warm.primary} />
                 <Text style={styles.pickerText}>{format(endTime, 'h:mm a')}</Text>
               </TouchableOpacity>
               {showEndPicker && (
@@ -219,6 +219,7 @@ export default function NewMeetingScreen() {
                     if (Platform.OS === 'android') setShowEndPicker(false);
                     if (d) setEndTime(d);
                   }}
+                  textColor={Colors.warm.text}
                 />
               )}
               {Platform.OS === 'ios' && showEndPicker && (
@@ -226,33 +227,31 @@ export default function NewMeetingScreen() {
                   style={styles.doneButton}
                   onPress={() => setShowEndPicker(false)}
                 >
-                  <Text style={styles.doneButtonText}>Done</Text>
+                  <Text style={styles.doneButtonText}>{t('common.done')}</Text>
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
-          {/* Location */}
           <View style={styles.field}>
-            <Text style={styles.label}>Location</Text>
+            <Text style={styles.label}>{t('meetingForm.locationLabel')}</Text>
             <TextInput
               style={styles.input}
               value={location}
               onChangeText={setLocation}
-              placeholder="Meeting location"
-              placeholderTextColor="#999"
+              placeholder={t('meetingForm.locationPlaceholder')}
+              placeholderTextColor={Colors.warm.textSecondary}
             />
           </View>
 
-          {/* Notes */}
           <View style={styles.field}>
-            <Text style={styles.label}>Notes</Text>
+            <Text style={styles.label}>{t('meetingForm.notesLabel')}</Text>
             <TextInput
               style={[styles.input, styles.notesInput]}
               value={notes}
               onChangeText={setNotes}
-              placeholder="Additional notes"
-              placeholderTextColor="#999"
+              placeholder={t('meetingForm.notesPlaceholder')}
+              placeholderTextColor={Colors.warm.textSecondary}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -269,7 +268,7 @@ export default function NewMeetingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.warm.background,
   },
   scrollView: {
     flex: 1,
@@ -281,17 +280,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.orthodox.lightGray,
+    borderBottomColor: Colors.warm.divider,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.royalBlue,
+    color: Colors.warm.primary,
   },
   field: {
     paddingHorizontal: 20,
@@ -300,17 +299,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: Colors.orthodox.lightGray,
-    color: Colors.orthodox.darkGray,
+    backgroundColor: Colors.warm.surface,
+    color: Colors.warm.text,
   },
   notesInput: {
     minHeight: 100,
@@ -321,14 +320,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     padding: 12,
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: Colors.warm.divider,
   },
   pickerText: {
     fontSize: 16,
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   timeRow: {
     flexDirection: 'row',
@@ -344,11 +343,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: Colors.orthodox.royalBlue,
+    backgroundColor: Colors.warm.primary,
     borderRadius: 8,
   },
   doneButtonText: {
-    color: Colors.orthodox.white,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
 });

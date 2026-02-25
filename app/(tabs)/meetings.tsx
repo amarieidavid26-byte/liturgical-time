@@ -10,7 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { format, parse, isAfter } from 'date-fns';
+import { format, parse } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import Colors from '@/constants/Colors';
 import { useAppStore } from '@/lib/store/appStore';
 import { deleteMeeting, getAllMeetings } from '@/lib/database/sqlite';
@@ -20,12 +21,13 @@ import { Meeting } from '@/lib/types';
 
 export default function MeetingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const meetings = useAppStore((state) => state.meetings);
   const setMeetings = useAppStore((state) => state.setMeetings);
   const removeMeeting = useAppStore((state) => state.removeMeeting);
   const calendarSyncEnabled = useAppStore((state) => state.calendarSyncEnabled);
   const parishSettings = useAppStore((state) => state.parishSettings);
-  
+
   const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
   const [pastMeetings, setPastMeetings] = useState<Meeting[]>([]);
 
@@ -49,19 +51,17 @@ export default function MeetingsScreen() {
   const filterMeetings = () => {
     const today = new Date();
     const todayString = format(today, 'yyyy-MM-dd');
-    
     const upcoming: Meeting[] = [];
     const past: Meeting[] = [];
-    
+
     meetings.forEach(meeting => {
-      const meetingDate = parse(meeting.date, 'yyyy-MM-dd', new Date());
       if (meeting.date >= todayString) {
         upcoming.push(meeting);
       } else {
         past.push(meeting);
       }
     });
-    
+
     setUpcomingMeetings(upcoming);
     setPastMeetings(past);
   };
@@ -74,12 +74,12 @@ export default function MeetingsScreen() {
 
   const handleDeleteMeeting = async (meeting: Meeting) => {
     Alert.alert(
-      'Delete Meeting',
-      `Are you sure you want to delete "${meeting.title}"?`,
+      t('meetings.deleteMeeting'),
+      `${t('meetings.deleteConfirm')} "${meeting.title}"?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('meetings.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('meetings.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -91,7 +91,7 @@ export default function MeetingsScreen() {
                 removeMeeting(meeting.id);
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete meeting');
+              Alert.alert(t('meetings.error'), t('meetings.deleteFailed'));
             }
           },
         },
@@ -103,7 +103,7 @@ export default function MeetingsScreen() {
     const meetingDate = parse(item.date, 'yyyy-MM-dd', new Date());
     const conflicts = parishSettings ? detectMeetingConflicts(item, parishSettings) : [];
     const hasHighConflict = conflicts.some(c => c.severity === 'high');
-    
+
     return (
       <TouchableOpacity
         style={[styles.meetingCard, hasHighConflict && styles.conflictCard]}
@@ -118,25 +118,25 @@ export default function MeetingsScreen() {
             </Text>
           </View>
           {conflicts.length > 0 && (
-            <Ionicons 
-              name="warning" 
-              size={24} 
-              color={hasHighConflict ? Colors.orthodox.red : Colors.orthodox.orange} 
+            <Ionicons
+              name="warning"
+              size={24}
+              color={hasHighConflict ? Colors.warm.red : Colors.warm.orange}
             />
           )}
         </View>
-        
+
         {item.location && (
           <View style={styles.meetingDetails}>
-            <Ionicons name="location" size={16} color="#666" />
+            <Ionicons name="location" size={16} color={Colors.warm.textSecondary} />
             <Text style={styles.meetingLocation}>{item.location}</Text>
           </View>
         )}
-        
+
         {conflicts.length > 0 && (
           <View style={styles.conflictInfo}>
             <Text style={styles.conflictText}>
-              ⚠️ Conflicts with {conflicts[0].orthodoxEvent.name}
+              ⚠️ {t('meetings.conflictsWith')} {conflicts[0].orthodoxEvent.name}
             </Text>
           </View>
         )}
@@ -146,24 +146,24 @@ export default function MeetingsScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="calendar-outline" size={64} color={Colors.orthodox.lightGray} />
-      <Text style={styles.emptyTitle}>No meetings scheduled</Text>
-      <Text style={styles.emptySubtitle}>Tap the + button to add your first meeting</Text>
+      <Ionicons name="calendar-outline" size={64} color={Colors.warm.divider} />
+      <Text style={styles.emptyTitle}>{t('meetings.noMeetings')}</Text>
+      <Text style={styles.emptySubtitle}>{t('meetings.noMeetingsSubtitle')}</Text>
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Meetings</Text>
+        <Text style={styles.headerTitle}>{t('meetings.title')}</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => router.push('/meeting/new')}
         >
-          <Ionicons name="add-circle" size={32} color={Colors.orthodox.royalBlue} />
+          <Ionicons name="add-circle" size={32} color={Colors.warm.primary} />
         </TouchableOpacity>
       </View>
-      
+
       {upcomingMeetings.length === 0 && pastMeetings.length === 0 ? (
         renderEmptyState()
       ) : (
@@ -174,13 +174,13 @@ export default function MeetingsScreen() {
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             upcomingMeetings.length > 0 ? (
-              <Text style={styles.sectionTitle}>Upcoming</Text>
+              <Text style={styles.sectionTitle}>{t('meetings.upcoming')}</Text>
             ) : null
           }
           ListFooterComponent={
             pastMeetings.length > 0 ? (
               <>
-                <Text style={styles.sectionTitle}>Past Meetings</Text>
+                <Text style={styles.sectionTitle}>{t('meetings.past')}</Text>
                 <FlatList
                   data={pastMeetings}
                   keyExtractor={(item) => item.id?.toString() || ''}
@@ -199,7 +199,7 @@ export default function MeetingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.orthodox.white,
+    backgroundColor: Colors.warm.background,
   },
   header: {
     flexDirection: 'row',
@@ -208,12 +208,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.orthodox.lightGray,
+    borderBottomColor: Colors.warm.divider,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
   },
   addButton: {
     padding: 5,
@@ -225,24 +225,24 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginTop: 20,
     marginBottom: 10,
   },
   meetingCard: {
-    backgroundColor: Colors.orthodox.lightGray,
+    backgroundColor: Colors.warm.surface,
     borderRadius: 12,
     padding: 15,
     marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 2,
   },
   conflictCard: {
     borderLeftWidth: 4,
-    borderLeftColor: Colors.orthodox.red,
+    borderLeftColor: Colors.warm.red,
   },
   meetingHeader: {
     flexDirection: 'row',
@@ -252,12 +252,12 @@ const styles = StyleSheet.create({
   meetingTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginBottom: 4,
   },
   meetingDate: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.warm.textSecondary,
   },
   meetingDetails: {
     flexDirection: 'row',
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
   },
   meetingLocation: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.warm.textSecondary,
     marginLeft: 5,
   },
   conflictInfo: {
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
   conflictText: {
     fontSize: 12,
-    color: Colors.orthodox.red,
+    color: Colors.warm.red,
     fontWeight: '500',
   },
   emptyState: {
@@ -289,13 +289,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.orthodox.darkGray,
+    color: Colors.warm.text,
     marginTop: 20,
     marginBottom: 10,
   },
   emptySubtitle: {
     fontSize: 16,
-    color: '#999',
+    color: Colors.warm.textSecondary,
     textAlign: 'center',
   },
 });

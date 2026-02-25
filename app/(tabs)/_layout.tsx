@@ -7,8 +7,9 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { useAppStore } from '@/lib/store/appStore';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import '@/lib/i18n';
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
@@ -21,15 +22,14 @@ export default function TabLayout() {
   const router = useRouter();
   const isOnboarded = useAppStore((state) => state.isOnboarded);
   const isLoading = useAppStore((state) => state.isLoading);
+  const { t } = useTranslation();
 
   useEffect(() => {
-    // Navigate to onboarding if not completed
     if (!isLoading && !isOnboarded) {
       router.replace('/onboarding');
     }
   }, [isOnboarded, isLoading]);
 
-  // Don't render tabs until we know if user is onboarded
   if (isLoading || !isOnboarded) {
     return null;
   }
@@ -37,15 +37,22 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
+        tabBarActiveTintColor: Colors.tabBar.active,
+        tabBarInactiveTintColor: Colors.tabBar.inactive,
+        tabBarStyle: {
+          backgroundColor: Colors.tabBar.background,
+          borderTopColor: Colors.tabBar.background,
+        },
         headerShown: useClientOnlyValue(false, true),
+        headerStyle: {
+          backgroundColor: Colors.warm.background,
+        },
+        headerTintColor: Colors.warm.text,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Calendar',
+          title: t('tabs.calendar'),
           tabBarIcon: ({ color }) => <TabBarIcon name="calendar" color={color} />,
           headerRight: () => (
             <Link href="/modal" asChild>
@@ -54,7 +61,7 @@ export default function TabLayout() {
                   <FontAwesome
                     name="info-circle"
                     size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
+                    color={Colors.warm.primary}
                     style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                   />
                 )}
@@ -66,21 +73,21 @@ export default function TabLayout() {
       <Tabs.Screen
         name="meetings"
         options={{
-          title: 'Meetings',
+          title: t('tabs.meetings'),
           tabBarIcon: ({ color }) => <TabBarIcon name="briefcase" color={color} />,
         }}
       />
       <Tabs.Screen
         name="orthodox"
         options={{
-          title: 'Orthodox',
+          title: t('tabs.orthodox'),
           tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('tabs.settings'),
           tabBarIcon: ({ color }) => <TabBarIcon name="settings" color={color} />,
         }}
       />

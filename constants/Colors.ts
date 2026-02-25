@@ -1,43 +1,52 @@
-const tintColorLight = '#4169E1'; // Royal blue
-const tintColorDark = '#FFD700'; // Gold
+// Warm Orthodox color palette
+const warm = {
+  background: '#F5F0E8',       // Warm parchment
+  surface: '#FFF9F0',          // Warm white for cards
+  primary: '#C8A951',          // Liturgical gold
+  secondary: '#8B1A2B',        // Deep burgundy
+  accent: '#1a237e',           // Royal blue
+  text: '#2D2418',             // Warm dark brown
+  textSecondary: '#6B5D4F',    // Warm grey-brown
+  divider: '#D4C9B8',          // Warm tan
+  fasting: '#5B2C6F',          // Purple
+  sunday: '#8B1A2B',           // Burgundy
+  today: '#C8A951',            // Gold
+  red: '#DC143C',              // High severity conflicts
+  orange: '#FF8C00',           // Medium severity
+  green: '#4CAF50',            // Business meetings
+};
+
+const tabBar = {
+  background: '#2D2418',       // Dark warm brown
+  active: '#C8A951',           // Gold
+  inactive: '#8A7D6B',         // Muted warm grey
+};
 
 export default {
   light: {
-    text: '#000',
-    background: '#fff',
-    tint: tintColorLight,
-    tabIconDefault: '#ccc',
-    tabIconSelected: tintColorLight,
+    text: warm.text,
+    background: warm.background,
+    tint: warm.primary,
+    tabIconDefault: tabBar.inactive,
+    tabIconSelected: tabBar.active,
   },
   dark: {
     text: '#fff',
-    background: '#000',
-    tint: tintColorDark,
-    tabIconDefault: '#ccc',
-    tabIconSelected: tintColorDark,
+    background: '#1a1410',
+    tint: warm.primary,
+    tabIconDefault: '#666',
+    tabIconSelected: warm.primary,
   },
-  orthodox: {
-    gold: '#FFD700',        // Major feasts
-    royalBlue: '#4169E1',   // Regular Orthodox events
-    burgundy: '#800020',    // Fasting periods
-    white: '#FFFFFF',       // Background
-    lightGray: '#F5F5F5',   // Secondary background
-    darkGray: '#333333',    // Text
-    red: '#DC143C',         // High severity conflicts
-    orange: '#FF8C00',      // Medium severity conflicts
-    yellow: '#FFD700',      // Low severity conflicts
-    green: '#4CAF50',       // Business meetings
-    lightBlue: '#E3F2FD',   // Sunday highlight
-    purple: '#9C27B0',      // Special liturgy
-  },
+  warm,
+  tabBar,
   calendar: {
-    sundayBackground: '#E3F2FD',
-    fastingBackground: '#FFF3E0',
-    feastBackground: '#FFF8DC',
+    sundayBackground: '#F5E6E9',
+    fastingBackground: '#F3EAF6',
+    feastBackground: '#FFF5E0',
     conflictBackground: '#FFEBEE',
-    meetingDot: '#4CAF50',
-    orthodoxDot: '#4169E1',
-    greatFeastDot: '#FFD700',
-    conflictDot: '#DC143C',
-  }
+    meetingDot: warm.green,
+    orthodoxDot: warm.accent,
+    greatFeastDot: warm.primary,
+    conflictDot: warm.red,
+  },
 };

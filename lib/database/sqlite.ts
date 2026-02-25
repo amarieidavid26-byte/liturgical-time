@@ -2,12 +2,19 @@
 import * as SQLite from 'expo-sqlite';
 import { Meeting } from '../types';
 
-// Open or create the database
-const db = SQLite.openDatabaseSync('liturgicaltime.db');
+// Lazy database initialization – expo-sqlite 16 requires opening after native modules are ready
+let _db: SQLite.SQLiteDatabase | null = null;
+const getDb = (): SQLite.SQLiteDatabase => {
+  if (!_db) {
+    _db = SQLite.openDatabaseSync('liturgicaltime.db');
+  }
+  return _db;
+};
 
 // Initialize the database tables
 export const initDatabase = async (): Promise<void> => {
   try {
+    const db = getDb();
     // Create meetings table if it doesn't exist
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS meetings (
@@ -40,7 +47,7 @@ export const initDatabase = async (): Promise<void> => {
 // Get all meetings
 export const getAllMeetings = async (): Promise<Meeting[]> => {
   try {
-    const result = await db.getAllAsync<Meeting>(
+    const result = await getDb().getAllAsync<Meeting>(
       'SELECT * FROM meetings ORDER BY date, startTime'
     );
     return result || [];
@@ -53,7 +60,7 @@ export const getAllMeetings = async (): Promise<Meeting[]> => {
 // Get meetings for a specific date
 export const getMeetingsByDate = async (date: string): Promise<Meeting[]> => {
   try {
-    const result = await db.getAllAsync<Meeting>(
+    const result = await getDb().getAllAsync<Meeting>(
       'SELECT * FROM meetings WHERE date = ? ORDER BY startTime',
       [date]
     );
@@ -70,7 +77,7 @@ export const getMeetingsByDateRange = async (
   endDate: string
 ): Promise<Meeting[]> => {
   try {
-    const result = await db.getAllAsync<Meeting>(
+    const result = await getDb().getAllAsync<Meeting>(
       'SELECT * FROM meetings WHERE date >= ? AND date <= ? ORDER BY date, startTime',
       [startDate, endDate]
     );
@@ -84,7 +91,7 @@ export const getMeetingsByDateRange = async (
 // Add a new meeting
 export const addMeeting = async (meeting: Omit<Meeting, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> => {
   try {
-    const result = await db.runAsync(
+    const result = await getDb().runAsync(
       `INSERT INTO meetings (title, date, startTime, endTime, location, notes, calendarEventId)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -97,7 +104,7 @@ export const addMeeting = async (meeting: Omit<Meeting, 'id' | 'createdAt' | 'up
         meeting.calendarEventId || null
       ]
     );
-    
+
     console.log('Meeting added successfully:', result.lastInsertRowId);
     return result.lastInsertRowId;
   } catch (error) {
@@ -109,7 +116,7 @@ export const addMeeting = async (meeting: Omit<Meeting, 'id' | 'createdAt' | 'up
 // Update a meeting
 export const updateMeeting = async (meeting: Meeting): Promise<void> => {
   try {
-    await db.runAsync(
+    await getDb().runAsync(
       `UPDATE meetings
        SET title = ?, date = ?, startTime = ?, endTime = ?,
            location = ?, notes = ?, calendarEventId = ?, updatedAt = CURRENT_TIMESTAMP
@@ -122,10 +129,10 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
         meeting.location || null,
         meeting.notes || null,
         meeting.calendarEventId || null,
-        meeting.id
+        meeting.id ?? null
       ]
     );
-    
+
     console.log('Meeting updated successfully');
   } catch (error) {
     console.error('Error updating meeting:', error);
@@ -136,7 +143,7 @@ export const updateMeeting = async (meeting: Meeting): Promise<void> => {
 // Delete a meeting
 export const deleteMeeting = async (id: number): Promise<void> => {
   try {
-    await db.runAsync('DELETE FROM meetings WHERE id = ?', [id]);
+    await getDb().runAsync('DELETE FROM meetings WHERE id = ?', [id]);
     console.log('Meeting deleted successfully');
   } catch (error) {
     console.error('Error deleting meeting:', error);
@@ -147,7 +154,7 @@ export const deleteMeeting = async (id: number): Promise<void> => {
 // Get a single meeting by ID
 export const getMeetingById = async (id: number): Promise<Meeting | null> => {
   try {
-    const result = await db.getFirstAsync<Meeting>(
+    const result = await getDb().getFirstAsync<Meeting>(
       'SELECT * FROM meetings WHERE id = ?',
       [id]
     );
@@ -161,9 +168,9 @@ export const getMeetingById = async (id: number): Promise<Meeting | null> => {
 // Update only the calendarEventId for a meeting
 export const updateMeetingCalendarEventId = async (meetingId: number, calendarEventId: string | null): Promise<void> => {
   try {
-    await db.runAsync(
+    await getDb().runAsync(
       `UPDATE meetings SET calendarEventId = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
-      [calendarEventId, meetingId]
+      [calendarEventId ?? null, meetingId]
     );
   } catch (error) {
     console.error('Error updating meeting calendarEventId:', error);
@@ -174,7 +181,7 @@ export const updateMeetingCalendarEventId = async (meetingId: number, calendarEv
 // Clear all meetings (use with caution!)
 export const clearAllMeetings = async (): Promise<void> => {
   try {
-    await db.runAsync('DELETE FROM meetings');
+    await getDb().runAsync('DELETE FROM meetings');
     console.log('All meetings cleared');
   } catch (error) {
     console.error('Error clearing meetings:', error);

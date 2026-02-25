@@ -70,7 +70,7 @@ export const exportMeetingToCalendar = async (meeting: Meeting): Promise<string 
     const startDate = new Date(year, month - 1, day, startH, startM);
     const endDate = new Date(year, month - 1, day, endH, endM);
 
-    const eventDetails: Calendar.EventDetails = {
+    const eventDetails: Partial<Calendar.Event> = {
       title: meeting.title,
       startDate,
       endDate,
