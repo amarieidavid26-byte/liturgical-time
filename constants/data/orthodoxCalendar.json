@@ -1,0 +1,326 @@
+{
+  "greatFeasts": [
+    {
+      "name": "Nașterea Domnului (Crăciunul)",
+      "nameEn": "Nativity of Christ",
+      "date": "12-25",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Botezul Domnului (Boboteaza)",
+      "nameEn": "Theophany",
+      "date": "01-06",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Întâmpinarea Domnului",
+      "nameEn": "Presentation of Christ",
+      "date": "02-02",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Buna Vestire",
+      "nameEn": "Annunciation",
+      "date": "03-25",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Schimbarea la Față",
+      "nameEn": "Transfiguration",
+      "date": "08-06",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Adormirea Maicii Domnului",
+      "nameEn": "Dormition of the Theotokos",
+      "date": "08-15",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Nașterea Maicii Domnului",
+      "nameEn": "Nativity of the Theotokos",
+      "date": "09-08",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    },
+    {
+      "name": "Înălțarea Sfintei Cruci",
+      "nameEn": "Elevation of the Cross",
+      "date": "09-14",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great",
+      "fasting": "strict"
+    },
+    {
+      "name": "Intrarea în Biserică a Maicii Domnului",
+      "nameEn": "Entrance of the Theotokos",
+      "date": "11-21",
+      "moveable": false,
+      "liturgyRequired": true,
+      "level": "great"
+    }
+  ],
+  "moveableFeasts2024": {
+    "pascha": "2024-05-05",
+    "palmSunday": "2024-04-28",
+    "ascension": "2024-06-13",
+    "pentecost": "2024-06-23",
+    "allSaints": "2024-06-30"
+  },
+  "moveableFeasts2025": {
+    "pascha": "2025-04-20",
+    "palmSunday": "2025-04-13",
+    "ascension": "2025-05-29",
+    "pentecost": "2025-06-08",
+    "allSaints": "2025-06-15"
+  },
+  "moveableFeasts2026": {
+    "pascha": "2026-04-12",
+    "palmSunday": "2026-04-05",
+    "ascension": "2026-05-21",
+    "pentecost": "2026-05-31",
+    "allSaints": "2026-06-07"
+  },
+  "majorFeasts": [
+    {
+      "name": "Tăierea Împrejur a Domnului și Sf. Vasile cel Mare",
+      "nameEn": "Circumcision of Christ & St. Basil",
+      "date": "01-01",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Ioan Botezătorul",
+      "nameEn": "St. John the Baptist",
+      "date": "01-07",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sfinții Trei Ierarhi",
+      "nameEn": "Three Holy Hierarchs",
+      "date": "01-30",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Mare Mucenic Gheorghe",
+      "nameEn": "St. George",
+      "date": "04-23",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Apostoli Petru și Pavel",
+      "nameEn": "Sts. Peter and Paul",
+      "date": "06-29",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Ilie",
+      "nameEn": "St. Elijah",
+      "date": "07-20",
+      "liturgyRequired": false,
+      "level": "major"
+    },
+    {
+      "name": "Tăierea Capului Sf. Ioan Botezătorul",
+      "nameEn": "Beheading of St. John",
+      "date": "08-29",
+      "liturgyRequired": true,
+      "level": "major",
+      "fasting": "strict"
+    },
+    {
+      "name": "Sf. Mare Mucenic Dimitrie",
+      "nameEn": "St. Demetrius",
+      "date": "10-26",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Arhangeli Mihail și Gavriil",
+      "nameEn": "Archangels Michael and Gabriel",
+      "date": "11-08",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Nicolae",
+      "nameEn": "St. Nicholas",
+      "date": "12-06",
+      "liturgyRequired": true,
+      "level": "major"
+    },
+    {
+      "name": "Sf. Apostol Andrei",
+      "nameEn": "St. Andrew the Apostle",
+      "date": "11-30",
+      "liturgyRequired": true,
+      "level": "major"
+    }
+  ],
+  "fastingPeriods": {
+    "greatLent2024": {
+      "start": "2024-03-18",
+      "end": "2024-05-04",
+      "type": "lent"
+    },
+    "greatLent2025": {
+      "start": "2025-03-03",
+      "end": "2025-04-19",
+      "type": "lent"
+    },
+    "apostlesFast2024": {
+      "start": "2024-06-01",
+      "end": "2024-06-28",
+      "type": "regular"
+    },
+    "apostlesFast2025": {
+      "start": "2025-06-16",
+      "end": "2025-06-28",
+      "type": "regular"
+    },
+    "greatLent2026": {
+      "start": "2026-02-23",
+      "end": "2026-04-11",
+      "type": "lent"
+    },
+    "apostlesFast2026": {
+      "start": "2026-06-08",
+      "end": "2026-06-28",
+      "type": "regular"
+    },
+    "dormitionFast": {
+      "start": "08-01",
+      "end": "08-14",
+      "type": "regular"
+    },
+    "nativityFast": {
+      "start": "11-15",
+      "end": "12-24",
+      "type": "regular"
+    }
+  },
+  "weeklyFasting": {
+    "wednesday": "regular",
+    "friday": "regular"
+  },
+  "popularRomanianSaints": [
+    {
+      "name": "Sf. Parascheva",
+      "date": "10-14",
+      "liturgy": true
+    },
+    {
+      "name": "Sf. Dimitrie cel Nou",
+      "date": "10-27",
+      "liturgy": true
+    },
+    {
+      "name": "Sf. Andrei Șaguna",
+      "date": "11-30",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Antonie cel Mare",
+      "date": "01-17",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Efrem Sirul",
+      "date": "01-28",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Haralambie",
+      "date": "02-10",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. 40 de Mucenici",
+      "date": "03-09",
+      "liturgy": true
+    },
+    {
+      "name": "Sf. Constantin și Elena",
+      "date": "05-21",
+      "liturgy": true
+    },
+    {
+      "name": "Sf. Varlaam și Ioasaf",
+      "date": "11-19",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Spiridon",
+      "date": "12-12",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Ignatie Teoforul",
+      "date": "12-20",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Mc. Ștefan",
+      "date": "12-27",
+      "liturgy": true
+    },
+    {
+      "name": "Sf. Silvestru",
+      "date": "01-02",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Grigorie Teologul",
+      "date": "01-25",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Simeon și Ana",
+      "date": "02-03",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Teodor Tiron",
+      "date": "02-17",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Alexie, omul lui Dumnezeu",
+      "date": "03-17",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Maria Egipteanca",
+      "date": "04-01",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Cuvioasă Teodora",
+      "date": "09-11",
+      "liturgy": false
+    },
+    {
+      "name": "Sf. Grigorie Decapolitul",
+      "date": "11-20",
+      "liturgy": false
+    }
+  ]
+}
